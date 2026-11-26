@@ -106,6 +106,7 @@ OpenDesertCombat/
 ├── docs/
 │   ├── architecture.md                     # Engine choice, physics layers, scene hierarchy
 │   ├── gameplay_systems.md                 # Full system specs (vehicles, weapons, health, kits)
+│   ├── design_goals.md                     # Gameplay pillars, reference match, asset policy
 │   ├── roadmap.md                          # Sprint progress & milestones
 │   └── formats/
 │       └── refractor_formats.md            # Legacy Refractor 1 (.rfa/.sm) research notes
@@ -117,6 +118,7 @@ OpenDesertCombat/
 
 | Doc | Contents |
 |---|---|
+| [Design Goals](docs/design_goals.md) | Gameplay pillars, reference match, gap analysis, original-assets policy |
 | [Architecture Overview](docs/architecture.md) | Engine rationale, physics layers, scene hierarchy, vehicle contract |
 | [Gameplay Systems Reference](docs/gameplay_systems.md) | Detailed specs for all systems (helicopters, tank, health, kits, conquest) |
 | [Development Roadmap](docs/roadmap.md) | Sprint tracker — what's done, what's next |

@@ -1,5 +1,7 @@
 # OpenDesertCombat — Development Roadmap
 
+> Sprints are prioritised against the pillars in [Design Goals](design_goals.md).
+
 ## Sprint 1: Core Flight & Sandbox — Complete
 - [x] Godot 4.4.1 project with `JoltPhysics3D` and Vulkan Forward+
 - [x] `HelicopterController` 6-DOF flight model + prototype gunship mesh & spinning rotors
