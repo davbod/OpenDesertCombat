@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://desert_test_map"]
+[gd_scene load_steps=22 format=3 uid="uid://desert_test_map"]
 
 [ext_resource type="Script" path="res://scripts/maps/test_desert.gd" id="1"]
 [ext_resource type="PackedScene" uid="uid://odc_player" path="res://scenes/infantry/player.tscn" id="2"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://odc_humvee" path="res://scenes/vehicles/humvee.tscn" id="8"]
 [ext_resource type="PackedScene" uid="uid://tank_tscn" path="res://scenes/vehicles/tank.tscn" id="9"]
 [ext_resource type="PackedScene" uid="uid://kit_select_tscn" path="res://scenes/ui/kit_select.tscn" id="10"]
+[ext_resource type="PackedScene" uid="uid://odc_jet" path="res://scenes/vehicles/jet.tscn" id="11"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.35, 0.55, 0.85, 1)
@@ -35,11 +36,11 @@ fog_density = 0.0003
 shader = ExtResource("7")
 
 [sub_resource type="BoxMesh" id="ground_mesh"]
-size = Vector3(2000, 1, 2000)
+size = Vector3(8000, 1, 8000)
 material = SubResource("desert_shader_mat")
 
 [sub_resource type="BoxShape3D" id="ground_shape"]
-size = Vector3(2000, 1, 2000)
+size = Vector3(8000, 1, 8000)
 
 [sub_resource type="StandardMaterial3D" id="concrete_mat"]
 albedo_color = Color(0.52, 0.49, 0.43, 1)
@@ -51,6 +52,17 @@ material = SubResource("concrete_mat")
 
 [sub_resource type="BoxShape3D" id="helipad_shape"]
 size = Vector3(18, 0.2, 18)
+
+[sub_resource type="StandardMaterial3D" id="asphalt_mat"]
+albedo_color = Color(0.24, 0.23, 0.22, 1)
+roughness = 0.95
+
+[sub_resource type="BoxMesh" id="runway_mesh"]
+size = Vector3(30, 0.1, 900)
+material = SubResource("asphalt_mat")
+
+[sub_resource type="BoxShape3D" id="runway_shape"]
+size = Vector3(30, 0.1, 900)
 
 [sub_resource type="BoxMesh" id="building_mesh"]
 size = Vector3(12, 8, 12)
@@ -92,6 +104,16 @@ mesh = SubResource("helipad_mesh")
 [node name="HelipadCollision" type="CollisionShape3D" parent="Helipad"]
 shape = SubResource("helipad_shape")
 
+[node name="Runway" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 300, 0.05, 0)
+collision_layer = 1
+
+[node name="RunwayMesh" type="MeshInstance3D" parent="Runway"]
+mesh = SubResource("runway_mesh")
+
+[node name="RunwayCollision" type="CollisionShape3D" parent="Runway"]
+shape = SubResource("runway_shape")
+
 [node name="Bunker1" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 4, -20)
 collision_layer = 1
@@ -123,6 +145,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.0, 2)
 
 [node name="Tank" parent="." instance=ExtResource("9")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 1.0, 10)
+
+[node name="Jet" parent="." instance=ExtResource("11")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 300, 2.05, 420)
 
 [node name="ConquestManager" type="Node" parent="."]
 script = ExtResource("4")

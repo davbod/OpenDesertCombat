@@ -12,6 +12,7 @@ class_name GameHUD
 @onready var vehicle_indicator: Label = $VehiclePanel/VBox/VehicleIndicator
 @onready var altitude_label: Label = $VehiclePanel/VBox/AltitudeDisplay
 @onready var speed_label: Label = $VehiclePanel/VBox/SpeedDisplay
+@onready var status_label: Label = $VehiclePanel/VBox/StatusDisplay if has_node("VehiclePanel/VBox/StatusDisplay") else null
 @onready var vehicle_panel: PanelContainer = $VehiclePanel
 
 var conquest_manager: ConquestManager
@@ -63,7 +64,7 @@ func set_interact_prompt(text: String) -> void:
 		interact_prompt.visible = not text.is_empty()
 
 
-func update_vehicle_hud(vehicle_name: String, altitude: float, speed: float) -> void:
+func update_vehicle_hud(vehicle_name: String, altitude: float, speed: float, status: String = "") -> void:
 	if vehicle_panel:
 		vehicle_panel.visible = true
 	if vehicle_indicator:
@@ -72,6 +73,9 @@ func update_vehicle_hud(vehicle_name: String, altitude: float, speed: float) -> 
 		altitude_label.text = "ALT: %d m" % int(altitude)
 	if speed_label:
 		speed_label.text = "SPD: %d km/h" % int(speed * 3.6)
+	if status_label:
+		status_label.text = status
+		status_label.visible = not status.is_empty()
 
 
 func hide_vehicle_hud() -> void:

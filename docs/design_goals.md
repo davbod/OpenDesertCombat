@@ -61,8 +61,8 @@ tension. It is a gameplay target, not a blueprint.
 
 | Pillar | Already built | Missing |
 |---|---|---|
-| Combined arms | Infantry, Humvee, attack helicopter, tank, 4 kits | AA vehicle/emplacement, transport helicopter, AT mines/C4 actually usable |
-| Air superiority | Helicopter flight model + rockets | **Fixed-wing jets** (flight model, guns, bombs), airfield takeoff/landing |
+| Combined arms | Infantry, Humvee, attack helicopter, jet, tank, 4 kits | AA vehicle/emplacement, transport helicopter, AT mines/C4 actually usable |
+| Air superiority | Helicopter + rockets; **jet** (lift/stall model, cannon, bombs, runway takeoff) | AA counter, second airframe for OPFOR, landing/rearm on the runway |
 | Big desert maps | Test sandbox, procedural shader | Heightmap terrain, original large map with main bases + neutral flags |
 | Conquest tension | Tickets, 2 capture points, kit respawn | Spawn-at-flag, vehicles tied to flag ownership, end-of-round screen |
 | Readable combat | Hitscan rifle, rockets, tank cannon | Particles, audio, minimap, team colours/IFF |

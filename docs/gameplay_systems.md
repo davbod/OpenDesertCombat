@@ -173,3 +173,33 @@ Add as a node in any map scene. Call `register_vehicle(scene, spawn_node)` for e
 4. Waits `respawn_delay` (30 s default), re-instances from scene, re-places and re-wires
 
 > [!NOTE] `VehicleSpawnManager` is in the codebase and ready to use. It is not yet auto-wired in `test_desert.tscn` — add it as a child and call `register_vehicle()` from `test_desert.gd` in a future sprint when wreck/respawn is a priority.
+
+---
+
+## 9. Fixed-Wing Jet (`JetController`)
+
+Script: `godot/scripts/vehicles/jet_controller.gd` · Scene: `godot/scenes/vehicles/jet.tscn` · Test: `godot/tests/jet_flight_test.gd`
+
+Built on `RigidBody3D` (`mass = 12000 kg`, explicit `inertia = (60000, 80000, 20000)`), with three sphere colliders as landing gear and a zero-friction airframe material (tyre grip and braking are applied in code). Damping modes are set to **replace**, so the project-default 0.1/s damping does not add phantom drag.
+
+**Aerodynamics** (per physics tick):
+
+| Force | Model | Defaults |
+|---|---|---|
+| Thrust | `max_thrust × throttle` along `-Z` | 150 kN (TWR ≈ 1.27); `W`/`S` ramp throttle at 0.6/s |
+| Lift | `lift_factor × v² × CL`, perpendicular to airflow | `CL = 5.0 × (AoA + 2°)`; stall at 16°, lift falls to 35 % past it |
+| Drag | `2.6 × v²` + `0.12 × lift × CL` (induced) | Top speed ≈ 240 m/s; hard turns bleed energy |
+| Sideslip | Lateral velocity decays at 2.5/s × (v / 110) | |
+
+**Fly-by-wire (rate command):** mouse moves a self-centring virtual stick. The stick commands a body rotation *rate* (pitch 1.2, roll 3.0, yaw 0.45 rad/s at 110 m/s, scaled by `(v/110)²`). Torque = `inertia × (target − current) × 6`. On top of that:
+- **AoA limiter** (arcade assist, on by default): pitch command is capped so AoA stays under 90 % of stall.
+- **Auto-trim** (stick-free): holds the AoA needed for a straight flight path (`1 g × cos γ / cos bank`). When the jet is too slow to reach it, the nose falls through and it recovers speed on its own.
+- **Weathervane** yaw stability and **nose-drop** when stalled.
+
+**Measured envelope** (`jet_flight_test.gd`): liftoff ≈ 360 m / 9.5 s; 300 m AGL at 160 m/s after 20 s; hands-off cruise ≈ 140 m/s at 40 % throttle; sustained hard turn ≈ 23–29 °/s while bleeding ~40 m/s in 6 s.
+
+**Weapons:** 20 mm hitscan cannon (`LMB`, 0.07 s, 18 dmg, 1.5 km, alternating barrels, tracer) and free-fall bombs (`RMB`, 4 carried, 1 rearms every 10 s; `RocketProjectile` with `speed = 0`, full gravity, 16 m blast, 450 vehicle / 200 infantry damage).
+
+**Damage:** `HealthComponent` (250). Losing more than 22 m/s in a single tick counts as a crash (12 dmg per extra m/s + 40). On death the jet loses thrust and controls; any occupant is killed and ejected (`PlayerController._on_vehicle_destroyed`).
+
+**HUD:** `get_hud_status()` adds a status line to the vehicle panel: `THR %`, bombs, `LOW SPEED` (< 55 m/s) and `!! STALL !!`.
