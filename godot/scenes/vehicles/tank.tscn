@@ -1,0 +1,64 @@
+[gd_scene load_steps=8 format=3 uid="uid://tank_tscn"]
+
+[ext_resource type="Script" path="res://scripts/vehicles/tank_controller.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/game/health_component.gd" id="2_health"]
+
+[sub_resource type="BoxShape3D" id="1_hull"]
+size = Vector3(3.6, 1.2, 6.5)
+
+[sub_resource type="BoxShape3D" id="2_track_l"]
+size = Vector3(0.6, 0.9, 6.0)
+
+[sub_resource type="BoxShape3D" id="3_track_r"]
+size = Vector3(0.6, 0.9, 6.0)
+
+[sub_resource type="BoxMesh" id="4_hull_mesh"]
+size = Vector3(3.6, 1.2, 6.5)
+
+[sub_resource type="BoxMesh" id="5_turret_mesh"]
+size = Vector3(2.6, 0.75, 2.8)
+
+[node name="Tank" type="RigidBody3D"]
+script = ExtResource("1_script")
+mass = 62000.0
+linear_damp = 0.6
+angular_damp = 4.0
+collision_layer = 4
+collision_mask = 5
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("2_health")
+max_health = 500.0
+
+[node name="HullCollision" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.3, 0)
+shape = SubResource("1_hull")
+
+[node name="TrackCollisionL" type="CollisionShape3D" parent="."]
+position = Vector3(-2.1, -0.1, 0)
+shape = SubResource("2_track_l")
+
+[node name="TrackCollisionR" type="CollisionShape3D" parent="."]
+position = Vector3(2.1, -0.1, 0)
+shape = SubResource("3_track_r")
+
+[node name="HullMesh" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.3, 0)
+mesh = SubResource("4_hull_mesh")
+
+[node name="TurretPivot" type="Node3D" parent="."]
+position = Vector3(0, 1.0, -0.6)
+
+[node name="TurretMesh" type="MeshInstance3D" parent="TurretPivot"]
+position = Vector3(0, 0.0, 0)
+mesh = SubResource("5_turret_mesh")
+
+[node name="BarrelPivot" type="Node3D" parent="TurretPivot"]
+position = Vector3(0, 0.1, -1.2)
+
+[node name="BarrelMesh" type="MeshInstance3D" parent="TurretPivot/BarrelPivot"]
+position = Vector3(0, 0, -1.9)
+mesh = SubResource("5_turret_mesh")
+
+[node name="Muzzle" type="Node3D" parent="TurretPivot/BarrelPivot"]
+position = Vector3(0, 0, -4.2)

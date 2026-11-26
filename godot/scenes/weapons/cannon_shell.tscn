@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://cannon_shell_tscn"]
+
+[ext_resource type="Script" path="res://scripts/weapons/cannon_shell.gd" id="1_script"]
+
+[sub_resource type="CylinderMesh" id="1_mesh"]
+top_radius = 0.05
+bottom_radius = 0.05
+height = 0.8
+
+[node name="CannonShell" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="TracerMesh" type="MeshInstance3D" parent="."]
+rotation = Vector3(1.5708, 0, 0)
+mesh = SubResource("1_mesh")

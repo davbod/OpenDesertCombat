@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3 uid="uid://odc_rocket_projectile"]
+
+[ext_resource type="Script" path="res://scripts/weapons/rocket_projectile.gd" id="1"]
+
+[sub_resource type="StandardMaterial3D" id="rocket_mat"]
+albedo_color = Color(0.25, 0.27, 0.22, 1)
+emission_enabled = true
+emission = Color(1, 0.55, 0.1, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="CylinderMesh" id="rocket_mesh"]
+top_radius = 0.06
+bottom_radius = 0.08
+height = 1.1
+material = SubResource("rocket_mat")
+
+[node name="RocketProjectile" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+mesh = SubResource("rocket_mesh")

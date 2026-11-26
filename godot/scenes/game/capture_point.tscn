@@ -1,0 +1,38 @@
+[gd_scene load_steps=6 format=3 uid="uid://odc_capture_point"]
+
+[ext_resource type="Script" path="res://scripts/game/capture_point.gd" id="1"]
+
+[sub_resource type="CylinderShape3D" id="zone_shape"]
+height = 8.0
+radius = 12.0
+
+[sub_resource type="StandardMaterial3D" id="pole_mat"]
+albedo_color = Color(0.35, 0.35, 0.35, 1)
+metallic = 0.6
+
+[sub_resource type="CylinderMesh" id="pole_mesh"]
+top_radius = 0.1
+bottom_radius = 0.12
+height = 10.0
+material = SubResource("pole_mat")
+
+[sub_resource type="BoxMesh" id="flag_banner_mesh"]
+size = Vector3(3.0, 1.8, 0.08)
+
+[node name="CapturePoint" type="Area3D" node_paths=PackedStringArray("flag_mesh")]
+collision_layer = 0
+collision_mask = 6
+script = ExtResource("1")
+flag_mesh = NodePath("FlagBanner")
+
+[node name="ZoneCollision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
+shape = SubResource("zone_shape")
+
+[node name="FlagPole" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0)
+mesh = SubResource("pole_mesh")
+
+[node name="FlagBanner" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 9, 0)
+mesh = SubResource("flag_banner_mesh")
