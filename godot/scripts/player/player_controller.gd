@@ -149,7 +149,8 @@ func _process(delta: float) -> void:
 		var v_name: String = current_vehicle.vehicle_name if "vehicle_name" in current_vehicle else "Vehicle"
 		var alt: float = current_vehicle.altitude_agl if "altitude_agl" in current_vehicle else 0.0
 		var spd: float = current_vehicle.linear_velocity.length() if current_vehicle is RigidBody3D else 0.0
-		hud.update_vehicle_hud(v_name, alt, spd)
+		var status: String = current_vehicle.call("get_hud_status") if current_vehicle.has_method("get_hud_status") else ""
+		hud.update_vehicle_hud(v_name, alt, spd, status)
 	elif not is_in_vehicle and Input.is_action_pressed("fire") and fire_cooldown <= 0.0:
 		if active_weapon == 1:
 			_fire_rifle()
@@ -232,6 +233,11 @@ func _enter_vehicle(vehicle: Node3D) -> void:
 	vehicle.add_child(camera_pivot)
 	_apply_vehicle_camera_offset()
 
+	# If the vehicle is destroyed while we're inside, we go down with it
+	var vehicle_hc := _find_health_component(vehicle)
+	if vehicle_hc and not vehicle_hc.died.is_connected(_on_vehicle_destroyed):
+		vehicle_hc.died.connect(_on_vehicle_destroyed)
+
 	if hud:
 		hud.set_interact_prompt("")
 
@@ -253,6 +259,10 @@ func _apply_vehicle_camera_offset() -> void:
 func _exit_vehicle() -> void:
 	if not current_vehicle:
 		return
+
+	var vehicle_hc := _find_health_component(current_vehicle)
+	if vehicle_hc and vehicle_hc.died.is_connected(_on_vehicle_destroyed):
+		vehicle_hc.died.disconnect(_on_vehicle_destroyed)
 
 	camera_pivot.get_parent().remove_child(camera_pivot)
 	add_child(camera_pivot)
@@ -279,7 +289,18 @@ func _exit_vehicle() -> void:
 
 ## --- Health / Death / Respawn ---
 
+func _find_health_component(node: Node) -> HealthComponent:
+	return node.find_child("HealthComponent", true, false) as HealthComponent if node else null
+
+
+func _on_vehicle_destroyed(attacker: Node3D) -> void:
+	_exit_vehicle()
+	if health_component:
+		health_component.take_damage(health_component.current_health, attacker)
+
 func _on_player_died(_attacker: Node3D) -> void:
+	if is_in_vehicle:
+		_exit_vehicle()
 	_is_dead = true
 	visible = false
 	if collision_shape:

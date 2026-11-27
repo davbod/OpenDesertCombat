@@ -2,7 +2,7 @@
 
 An open-source modern military combined-arms FPS inspired by *Battlefield 1942: Desert Combat*, built with **Godot 4.4** + **Jolt Physics** and targeting Linux natively.
 
-> [!NOTE] This is an **early prototype** (Sprint 2 complete). Helicopter, Humvee, and Tank are driveable; infantry FPS combat and Conquest mode are functional; kit selection and respawn are implemented. Multiplayer and heightmap terrain are Sprint 3–4 targets.
+> [!NOTE] This is an **early prototype** (Sprint 2 complete). Helicopter, F-16 jet, Humvee, and Tank are driveable; infantry FPS combat and Conquest mode are functional; kit selection and respawn are implemented. Multiplayer and heightmap terrain are Sprint 3–4 targets.
 
 ## Quick Start
 
@@ -16,6 +16,9 @@ An open-source modern military combined-arms FPS inspired by *Battlefield 1942: 
 # Headless validation (CI / no display):
 ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot/ --import --quit
 ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot/ --quit
+
+# Jet flight-model test (takeoff, cruise, hard turn, stall, crash) — exits non-zero on failure:
+./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot/ --script res://tests/jet_flight_test.gd
 ```
 
 > [!IMPORTANT] The Godot binary (`Godot_v4.4.1-stable_linux.x86_64`) is **not** committed. Download it from [godotengine.org](https://godotengine.org/download) or [GitHub releases](https://github.com/godotengine/godot/releases/tag/4.4.1-stable) and place it in the repository root.
@@ -43,6 +46,13 @@ An open-source modern military combined-arms FPS inspired by *Battlefield 1942: 
 | | Rotate Turret | `Mouse X` |
 | | Elevate Barrel | `Mouse Y` |
 | | Fire Main Cannon | `Left Mouse` |
+| | Toggle Chase / Cockpit Camera | `V` |
+| **Jet** | Throttle Up / Down | `W` / `S` (hold) |
+| | Rudder Left / Right | `A` / `D` |
+| | Pitch / Roll | `Mouse` (virtual stick, self-centring) |
+| | Fire 20 mm Cannon | `Left Mouse` |
+| | Drop Bomb (4, rearm 10 s each) | `Right Mouse` |
+| | Wheel Brake (on runway) | `Space` |
 | | Toggle Chase / Cockpit Camera | `V` |
 | **System** | Toggle Mouse Capture | `Esc` |
 
@@ -79,6 +89,7 @@ OpenDesertCombat/
 │   │   ├── vehicles/
 │   │   │   ├── helicopter.tscn             # AH-64-style gunship (RigidBody3D)
 │   │   │   ├── humvee.tscn                 # 4×4 HMMWV (VehicleBody3D)
+│   │   │   ├── jet.tscn                    # F-16-style fighter (RigidBody3D + gear)
 │   │   │   └── tank.tscn                   # M1A1-style MBT (RigidBody3D tracks)
 │   │   └── weapons/
 │   │       ├── cannon_shell.tscn           # Visual AP tracer round (tank cannon)
@@ -98,6 +109,7 @@ OpenDesertCombat/
 │       │   └── kit_select_menu.gd          # Kit picker logic & respawn countdown
 │       ├── vehicles/
 │       │   ├── helicopter_controller.gd    # 6-DOF flight physics + Hydra 70 pods
+│       │   ├── jet_controller.gd           # Lift/stall/drag model, fly-by-wire, cannon + bombs
 │       │   ├── humvee_controller.gd        # VehicleBody3D wheeled driving
 │       │   └── tank_controller.gd          # RigidBody3D tracks, turret/barrel, AP cannon
 │       └── weapons/

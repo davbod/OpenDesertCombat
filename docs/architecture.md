@@ -99,7 +99,8 @@ All vehicles implement a lightweight **duck-typed contract** checked by `PlayerC
 | Actor | `max_health` | Death consequence |
 |---|---|---|
 | Player | 100 (kit-adjustable) | `KitSelectMenu` shown → respawn |
-| Helicopter | 300 | (wreck + respawn via `VehicleSpawnManager` — wired in future sprint) |
+| Helicopter | 300 | Occupants killed + ejected; wreck/respawn via `VehicleSpawnManager` in a future sprint |
+| Jet | 250 | Loses thrust/controls; occupants killed + ejected; crash damage from impact speed |
 | Humvee | 200 | (same) |
 | Tank | 500 | (same) |
 

@@ -10,6 +10,8 @@ class_name RocketProjectile
 @export var lifetime: float = 6.0
 @export var blast_radius: float = 8.0
 @export var blast_impulse: float = 12000.0
+@export var vehicle_damage: float = 120.0  ## Max splash damage to vehicles (falls off with distance)
+@export var infantry_damage: float = 80.0  ## Max splash damage to infantry
 
 var velocity: Vector3 = Vector3.ZERO
 var shooter: Node3D = null
@@ -73,7 +75,7 @@ func _explode(hit_pos: Vector3) -> void:
 			# Apply splash damage to HealthComponent if present
 			var hc: HealthComponent = (body as Node).find_child("HealthComponent", true, false) as HealthComponent
 			if hc:
-				hc.take_damage(120.0 * falloff, shooter)
+				hc.take_damage(vehicle_damage * falloff, shooter)
 		elif body is CharacterBody3D:
 			# Infantry splash damage
 			var offset: Vector3 = (body as CharacterBody3D).global_position - hit_pos
@@ -81,7 +83,7 @@ func _explode(hit_pos: Vector3) -> void:
 			var falloff := clampf(1.0 - (dist / blast_radius), 0.0, 1.0)
 			var hc: HealthComponent = (body as Node).find_child("HealthComponent", true, false) as HealthComponent
 			if hc:
-				hc.take_damage(80.0 * falloff, shooter)
+				hc.take_damage(infantry_damage * falloff, shooter)
 
 	# Visual flash sphere that expands and fades out
 	var flash := MeshInstance3D.new()

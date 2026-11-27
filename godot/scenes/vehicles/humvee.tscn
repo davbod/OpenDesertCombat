@@ -1,6 +1,7 @@
-[gd_scene load_steps=8 format=3 uid="uid://odc_humvee"]
+[gd_scene load_steps=9 format=3 uid="uid://odc_humvee"]
 
 [ext_resource type="Script" path="res://scripts/vehicles/humvee_controller.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/game/health_component.gd" id="2_health"]
 
 [sub_resource type="BoxShape3D" id="chassis_col"]
 size = Vector3(2.1, 1.1, 4.5)
@@ -34,6 +35,10 @@ mass = 2400.0
 center_of_mass_mode = 1
 center_of_mass = Vector3(0, -0.35, 0)
 script = ExtResource("1")
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("2_health")
+max_health = 200.0
 
 [node name="ChassisCollision" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)

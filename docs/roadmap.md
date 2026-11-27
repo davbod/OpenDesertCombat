@@ -22,7 +22,15 @@
 - [x] `SpawnUSMC` and `SpawnOPFOR` markers added to `test_desert.tscn`
 - [x] All 7 `class_name` declarations registered; headless import + scene load — exit 0, zero errors
 
-## Sprint 3: Maps & Atmosphere
+## Sprint 3: Air Superiority, Maps & Atmosphere
+- [x] `JetController` fixed-wing flight model — lift ∝ v² × AoA with stall, parasitic + induced drag, fly-by-wire rate command, AoA limiter, stick-free auto-trim
+- [x] Jet weapons: hitscan 20 mm cannon with tracers, free-fall bombs (4, rearming)
+- [x] Crash damage from impact speed; destroyed vehicles kill their occupants
+- [x] `HealthComponent` added to Helicopter (300) and Humvee (200) — previously documented but missing
+- [x] Map enlarged to 8 × 8 km with a 900 m runway; jet spawns at the threshold
+- [x] Headless flight-model test (`tests/jet_flight_test.gd`)
+- [ ] Mobile AA vehicle + fixed AA emplacements, guided SAM projectile
+- [ ] Wire `VehicleSpawnManager` into the map (wrecks + respawn for all vehicles)
 - [ ] Heightmap desert terrain with dunes and elevation
 - [ ] Particle effects (rocket smoke trails, impact dust, helicopter rotor downwash)
 - [ ] Audio pass (rotor loop, engine spool, weapon fire, explosions)

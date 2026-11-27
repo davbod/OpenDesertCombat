@@ -1,0 +1,156 @@
+[gd_scene load_steps=20 format=3 uid="uid://odc_jet"]
+
+[ext_resource type="Script" path="res://scripts/vehicles/jet_controller.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/game/health_component.gd" id="2"]
+
+[sub_resource type="PhysicsMaterial" id="airframe_phys"]
+friction = 0.0
+bounce = 0.0
+
+[sub_resource type="BoxShape3D" id="fuselage_col"]
+size = Vector3(1.6, 1.6, 14.0)
+
+[sub_resource type="BoxShape3D" id="wing_col"]
+size = Vector3(9.5, 0.3, 3.2)
+
+[sub_resource type="SphereShape3D" id="wheel_col"]
+radius = 0.4
+
+[sub_resource type="StandardMaterial3D" id="grey_mat"]
+albedo_color = Color(0.55, 0.58, 0.6, 1)
+roughness = 0.55
+metallic = 0.3
+
+[sub_resource type="StandardMaterial3D" id="dark_mat"]
+albedo_color = Color(0.18, 0.19, 0.2, 1)
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="canopy_mat"]
+transparency = 1
+albedo_color = Color(0.35, 0.3, 0.12, 0.8)
+roughness = 0.1
+metallic = 0.7
+
+[sub_resource type="StandardMaterial3D" id="burner_mat"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.6, 0.25, 0.75)
+
+[sub_resource type="BoxMesh" id="fuselage_mesh"]
+material = SubResource("grey_mat")
+size = Vector3(1.4, 1.4, 11.0)
+
+[sub_resource type="CylinderMesh" id="nose_mesh"]
+material = SubResource("grey_mat")
+top_radius = 0.05
+bottom_radius = 0.72
+height = 3.0
+
+[sub_resource type="BoxMesh" id="canopy_mesh"]
+material = SubResource("canopy_mat")
+size = Vector3(0.9, 0.7, 2.6)
+
+[sub_resource type="BoxMesh" id="wing_mesh"]
+material = SubResource("grey_mat")
+size = Vector3(9.5, 0.15, 3.2)
+
+[sub_resource type="BoxMesh" id="htail_mesh"]
+material = SubResource("grey_mat")
+size = Vector3(5.0, 0.12, 1.7)
+
+[sub_resource type="BoxMesh" id="vtail_mesh"]
+material = SubResource("grey_mat")
+size = Vector3(0.15, 2.8, 2.4)
+
+[sub_resource type="CylinderMesh" id="nozzle_mesh"]
+material = SubResource("dark_mat")
+top_radius = 0.6
+bottom_radius = 0.55
+height = 1.0
+
+[sub_resource type="CylinderMesh" id="burner_mesh"]
+material = SubResource("burner_mat")
+top_radius = 0.5
+bottom_radius = 0.05
+height = 3.5
+
+[sub_resource type="SphereMesh" id="wheel_mesh"]
+material = SubResource("dark_mat")
+radius = 0.4
+height = 0.8
+
+[node name="Jet" type="RigidBody3D"]
+collision_layer = 4
+collision_mask = 5
+mass = 12000.0
+physics_material_override = SubResource("airframe_phys")
+continuous_cd = true
+script = ExtResource("1")
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("2")
+max_health = 250.0
+
+[node name="FuselageCollision" type="CollisionShape3D" parent="."]
+shape = SubResource("fuselage_col")
+
+[node name="WingCollision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 1.0)
+shape = SubResource("wing_col")
+
+[node name="NoseWheelCollision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5, -4.5)
+shape = SubResource("wheel_col")
+
+[node name="MainWheelLCollision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.4, -1.5, 1.2)
+shape = SubResource("wheel_col")
+
+[node name="MainWheelRCollision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, -1.5, 1.2)
+shape = SubResource("wheel_col")
+
+[node name="Fuselage" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5)
+mesh = SubResource("fuselage_mesh")
+
+[node name="Nose" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, -6.5)
+mesh = SubResource("nose_mesh")
+
+[node name="Canopy" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, -3.2)
+mesh = SubResource("canopy_mesh")
+
+[node name="Wings" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 1.0)
+mesh = SubResource("wing_mesh")
+
+[node name="HorizontalTail" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5.4)
+mesh = SubResource("htail_mesh")
+
+[node name="VerticalTail" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 5.2)
+mesh = SubResource("vtail_mesh")
+
+[node name="Nozzle" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 6.4)
+mesh = SubResource("nozzle_mesh")
+
+[node name="Afterburner" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 8.6)
+visible = false
+mesh = SubResource("burner_mesh")
+
+[node name="NoseWheel" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5, -4.5)
+mesh = SubResource("wheel_mesh")
+
+[node name="MainWheelL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.4, -1.5, 1.2)
+mesh = SubResource("wheel_mesh")
+
+[node name="MainWheelR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, -1.5, 1.2)
+mesh = SubResource("wheel_mesh")
