@@ -1,19 +1,16 @@
 ## Headless test for the Hardening combat fixes — the rifle and RPG hit soldiers, the tank's
 ## HE shell hurts infantry (direct hit and splash) and credits its crew, a bomb's direct hit
 ## counts once, and ticket bleed grows with the flag lead.
-## Run from the repository root (after an --import pass):
+## Run with godot/tests/run_all.sh, or alone from the repository root (after an --import pass):
 ##   <godot> --headless --path godot/ --script res://tests/combat_test.gd
-## Exits non-zero if any check fails.
+## Exits non-zero if any check fails. Shared helpers live in test_base.gd.
 
-extends SceneTree
+extends "res://tests/test_base.gd"
 
 const INFANTRY_RANGE := Vector3(-300, 0, 200)  ## Empty desert, far from flags and buildings
 const TANK_RANGE := Vector3(-500, 0, 200)
 const BOMB_RANGE := Vector3(-700, 0, 200)
 
-var failures: PackedStringArray = []
-
-var map: Node
 var player: PlayerController
 var match_mgr: MatchManager
 var conquest: ConquestManager
@@ -23,14 +20,10 @@ var tank: TankController
 var deaths_seen: Array = []  # [victim, killer] from participant_died
 
 
-func _initialize() -> void:
-	_run.call_deferred()
-
-
 func _run() -> void:
-	map = (load("res://scenes/maps/test_desert.tscn") as PackedScene).instantiate()
-	root.add_child(map)
-	current_scene = map
+	if not _load_map(TEST_DESERT):
+		_finish()
+		return
 	player = _find("Player") as PlayerController
 	match_mgr = _find("MatchManager") as MatchManager
 	conquest = _find("ConquestManager") as ConquestManager
@@ -210,11 +203,7 @@ func _test_ticket_bleed() -> void:
 	_check(whole_steps and usmc_updates.size() == bled_one + bled_two, "tickets drop one whole ticket at a time, one ticket_updated each (%d updates for %d tickets)" % [usmc_updates.size(), bled_one + bled_two])
 
 
-## --- Helpers ---
-
-func _find(node_name: String) -> Node:
-	return map.find_child(node_name, true, false)
-
+# --- Helpers (the shared ones are in test_base.gd) ---
 
 ## A stand-in soldier: a capsule like the player's on the Players layer, with a team and a
 ## HealthComponent (100 hp). `ground_pos` is where its feet are.
@@ -277,17 +266,13 @@ func _set_owner(point: CapturePoint, team: int) -> void:
 	point.capture_progress = 1.0 if team == Teams.USMC else -1.0
 
 
+## Like _teleport(), but also stands the body upright with no rotation.
 func _place(body: RigidBody3D, pos: Vector3) -> void:
-	body.global_transform = Transform3D(Basis(), pos)
-	body.linear_velocity = Vector3.ZERO
-	body.angular_velocity = Vector3.ZERO
+	body.global_basis = Basis()
+	_teleport(body, pos)
 
 
-func _teleport(body: CharacterBody3D, pos: Vector3) -> void:
-	body.global_position = pos
-	body.velocity = Vector3.ZERO
-
-
+## Horizontal unit vector of `v`.
 func _flat(v: Vector3) -> Vector3:
 	return Vector3(v.x, 0.0, v.z).normalized()
 
@@ -298,29 +283,3 @@ func _mean_gap(frames: Array[int]) -> float:
 		return 0.0
 	return float(frames.back() - frames.front()) / float(frames.size() - 1) / Engine.physics_ticks_per_second
 
-
-func _seconds(s: float) -> void:
-	await _ticks(ceili(s * Engine.physics_ticks_per_second))
-
-
-func _ticks(n: int) -> void:
-	for i in range(n):
-		await physics_frame
-
-
-func _check(cond: bool, msg: String) -> void:
-	if cond:
-		print("  PASS  " + msg)
-	else:
-		print("  FAIL  " + msg)
-		failures.append(msg)
-
-
-func _fail(msg: String) -> void:
-	failures.append(msg)
-	print("  FAIL  " + msg)
-
-
-func _finish() -> void:
-	print("\n%d failure(s)" % failures.size())
-	quit(1 if failures.size() > 0 else 0)
