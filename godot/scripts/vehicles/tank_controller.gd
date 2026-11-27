@@ -1,6 +1,7 @@
 ## TankController — Tracks-based tank using RigidBody3D + Jolt physics.
 ## Turret yaw is driven by mouse X; barrel pitch by mouse Y (clamped).
-## Left-click fires the main cannon; passengers supported via enter/exit contract.
+## Left-click fires the main cannon (hitscan HE shell: direct hit + splash via Explosion);
+## passengers supported via enter/exit contract.
 
 extends RigidBody3D
 class_name TankController
@@ -27,10 +28,18 @@ var team: int = Teams.NONE  ## Crew's team while occupied, NONE when empty
 @export var turret_mouse_sensitivity: float = 0.0018
 
 ## --- Cannon ---
-@export var cannon_damage: float = 250.0
-@export var cannon_speed: float = 580.0
+# Hitscan high-explosive shell: the body it hits takes cannon_damage, and a blast around the
+# impact hurts infantry (and, a little, vehicles) nearby. The tracer is visual only.
+const CANNON_HIT_MASK: int = 7  ## World (1) + Players (2) + Vehicles (4)
+
+@export var cannon_damage: float = 250.0  ## Direct hit on a soldier or vehicle
+@export var cannon_speed: float = 580.0  ## Tracer speed
 @export var cannon_range: float = 1800.0
 @export var fire_cooldown_time: float = 3.5
+@export var splash_radius: float = 6.0
+@export var splash_infantry_damage: float = 150.0  ## At the impact; falls off to 0 at splash_radius
+@export var splash_vehicle_damage: float = 40.0  ## At the impact; falls off to 0 at splash_radius
+@export var splash_impulse: float = 15000.0
 
 var _fire_cooldown: float = 0.0
 var _turret_yaw: float = 0.0
@@ -133,31 +142,25 @@ func _fire_cannon() -> void:
 	var space_state := get_world_3d().direct_space_state
 	var origin: Vector3 = muzzle.global_position
 	var forward: Vector3 = -muzzle.global_transform.basis.z
-	var query := PhysicsRayQueryParameters3D.create(
-		origin,
-		origin + forward * cannon_range,
-		5  # World (1) + Vehicles (4)
-	)
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + forward * cannon_range, CANNON_HIT_MASK)
 	query.exclude = [get_rid()]
 	var result := space_state.intersect_ray(query)
 
 	var hit_pos: Vector3 = result.position if result else origin + forward * cannon_range
 
-	# Damage health component on hit body
+	# HE detonation: direct hit takes cannon_damage, the rest of the blast takes splash.
+	# The occupant is the attacker, for friendly fire and kill credit.
 	if result:
-		var body: Object = result.get("collider")
-		if body is Node:
-			var hc: HealthComponent = (body as Node).find_child("HealthComponent", true, false) as HealthComponent
-			if hc:
-				hc.take_damage(cannon_damage, occupant)
+		Explosion.detonate(self, hit_pos, splash_radius, splash_vehicle_damage, splash_infantry_damage,
+				splash_impulse, occupant, result.get("collider") as Object, cannon_damage)
 
-	# Instantiate visual cannon shell tracer
-	var shell: Node3D = _cannon_scene.instantiate() as Node3D
+	# Visual tracer that stops at the impact point
+	var shell := _cannon_scene.instantiate() as CannonShell
 	var scene_root: Node = get_tree().current_scene if get_tree().current_scene else get_tree().root
 	scene_root.add_child(shell)
 	shell.global_position = origin
-	if shell.has_method("launch"):
-		shell.call("launch", forward * cannon_speed, Vector3.ZERO, self)
+	shell.max_distance = origin.distance_to(hit_pos)
+	shell.launch(forward * cannon_speed, Vector3.ZERO, self)
 
 	# Muzzle flash
 	_spawn_muzzle_flash(origin)

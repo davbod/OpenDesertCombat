@@ -218,7 +218,7 @@ func _fire_rifle() -> void:
 	var space_state := get_world_3d().direct_space_state
 	var origin := camera.global_position
 	var forward := -camera.global_transform.basis.z
-	var query := PhysicsRayQueryParameters3D.create(origin, origin + forward * 300.0, 5)
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + forward * 300.0, 7)  # World + Players + Vehicles
 	query.exclude = [get_rid()]
 	var result := space_state.intersect_ray(query)
 	if result:
