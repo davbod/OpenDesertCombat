@@ -1,5 +1,11 @@
 # Refractor 1 `.rfa` File Format
 
+> [!NOTE] Legacy research notes, kept for reference only. The game does not read these
+> formats, and the [original-content policy](../design_goals.md) rules out using assets or
+> data from *Battlefield 1942* or *Desert Combat*. These notes and `tools/odc-converter`
+> are scheduled for removal from this repository before going public (see
+> [roadmap C0](../roadmap.md#c0--before-going-public)).
+
 The `.rfa` (Refractor Archive) format is used by *Battlefield 1942* and mods like *Desert Combat* to package maps, animations, sounds, meshes, and scripts.
 
 ## Structure

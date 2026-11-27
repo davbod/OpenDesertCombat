@@ -59,13 +59,25 @@ tension. It is a gameplay target, not a blueprint.
 
 ## Gap Analysis vs. Reference
 
+*Updated 2026-11-27, end of Sprint 4.2.*
+
 | Pillar | Already built | Missing |
 |---|---|---|
-| Combined arms | Infantry, Humvee, attack helicopter, jet, tank, 4 kits | AA vehicle/emplacement, transport helicopter, AT mines/C4 actually usable |
-| Air superiority | Helicopter + rockets; **jet** (lift/stall model, cannon, bombs, runway takeoff) | AA counter, second airframe for OPFOR, landing/rearm on the runway |
-| Big desert maps | Test sandbox, procedural shader | Heightmap terrain, original large map with main bases + neutral flags |
-| Conquest tension | Tickets, 2 capture points, kit respawn | Spawn-at-flag, vehicles tied to flag ownership, end-of-round screen |
-| Readable combat | Hitscan rifle, rockets, tank cannon | Particles, audio, minimap, team colours/IFF |
+| Combined arms | Infantry, Humvee, attack helicopter, jet, tank; 4 kits | Kit weapons and gadgets (all kits carry the same rifle + RPG; only health and speed differ), AA vehicle/emplacement, transport helicopter, multi-seat vehicles, AT mines/C4 |
+| Air superiority | Helicopter + rockets; jet (lift/stall model, cannon, bombs, runway takeoff) | AA counter, OPFOR airframes, landing/rearm on the runway |
+| Big desert maps | 8 × 8 km flat test map with two main bases 400 m apart and two flags | Heightmap terrain, an original large map, map overview / minimap, out-of-bounds |
+| Conquest tension | Red vs blue teams; flags that neutralise then capture; uncapturable main bases; spawning at held flags; vehicles that belong to flags; ticket bleed and death cost; respawn timer; per-player score | Opponents (bots, multiplayer), scoreboard, end-of-round screen, bleed that grows with the flag lead (it is a flat 1 ticket/s today) |
+| Readable combat | Team-coloured flags and uniforms, capture HUD, tracers, explosion flashes | Particles, audio, soldier and vehicle models with clear silhouettes, IFF markers, minimap |
+
+**Counter-loop status** (pillar 1):
+
+| Counter | Status |
+|---|---|
+| AA beats air | ❌ No AA yet |
+| Air beats armour | ✅ Helicopter rockets, jet bombs |
+| Armour beats infantry | ❌ The tank cannon can't hit soldiers and has no splash |
+| Infantry beats armour | ✅ RPG-7 (AT mines / C4 not yet) |
+| Infantry vs infantry | ❌ The rifle's ray can't hit soldiers |
 
 ## Asset Sourcing
 
