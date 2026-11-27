@@ -33,7 +33,7 @@ Every milestone should end with something people can watch, play or talk about.
 ### C0 — Before going public
 - [x] Name check — **keeping OpenDesertCombat**; "Open" means open terrain and open battle (it also happens to be open source). The only "DESERT COMBAT" trademark found was DICE's US-only class 9 registration, dead since 2013–14. Describe the game as *inspired by* Desert Combat and never use EA/DICE/Desert Combat logos or assets
 - [ ] Before an itch.io/Steam release: check the EU, UK and Swedish registers by hand on TMview (automated search couldn't reach them)
-- [ ] Remove `tools/odc-converter`, the root `CMakeLists.txt` and the Refractor format notes from this repo (move them to a separate repo if they're still wanted) — an extractor for *Battlefield 1942* archives contradicts the original-content policy — *in Hardening*
+- [x] Remove `tools/odc-converter`, the root `CMakeLists.txt` and the Refractor format notes from this repo — an extractor for *Battlefield 1942* archives contradicts the original-content policy. Removed in Hardening; they stay in git history if ever wanted for a separate repo
 - [ ] Generic or invented in-game names instead of real products ("M1A1 Abrams", "F-16 Fighting Falcon", "AH-64 Apache", "HMMWV", real weapon names) — vehicle makers have taken shooters to court over this before — *in Hardening*
 - [ ] CI: headless import + all test suites on every pull request — *in Hardening*
 - [ ] Repo storefront: description, topics, social preview image, README hero GIF, "follow development" links
@@ -201,5 +201,5 @@ italic note says which milestone fixes it.*
 - [ ] Merged branches (`feat/fixed-wing-jet`, `docs/design-goals`, `worktree-design-goals`) and the old `.claude/worktrees/design-goals` worktree are still around. *Hardening*
 
 ### Before going public
-- [ ] **`tools/odc-converter` and the Refractor format notes** — an extractor for *Battlefield 1942* archives contradicts the original-content policy. Decision: remove from this repo (move to a separate repo if still wanted). *C0, in Hardening*
+- [x] **`tools/odc-converter` and the Refractor format notes** — an extractor for *Battlefield 1942* archives contradicted the original-content policy. Removed, with the root `CMakeLists.txt` and the converter's `.gitignore` entries. *Done in Hardening*
 - [ ] **Real product names in game** — "M1A1 Abrams", "F-16 Fighting Falcon", "AH-64 Apache", "HMMWV" versus the "original vehicle and weapon designs" pillar. Decision: generic or invented names. *C0, in Hardening*

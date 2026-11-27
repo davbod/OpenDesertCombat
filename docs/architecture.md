@@ -26,14 +26,6 @@
 - **Large terrain:** Terrain3D (MIT GDExtension) is the chosen route for large maps
   (Sprint 4.4).
 
-### Legacy tools
-
-`tools/odc-converter` (C++20, built with the root `CMakeLists.txt`) is a skeleton for
-reading *Battlefield 1942* `.rfa` archives; every command is still a stub. It and the
-[Refractor format notes](formats/refractor_formats.md) are not used by the game and
-contradict the [original-content policy](design_goals.md); they are scheduled for removal
-from this repository before going public ([roadmap C0](roadmap.md#c0--before-going-public)).
-
 ---
 
 ## 2. Physics Layers & Collision Masks

@@ -155,13 +155,11 @@ OpenDesertCombat/
 │       ├── teams_test.gd                   # Sprint 4.1 headless test
 │       ├── match_test.gd                   # Sprint 4.2 headless test
 │       └── jet_flight_test.gd              # Jet flight-model test
-├── docs/
-│   ├── design_goals.md                     # Pillars, reference match, gap analysis, asset policy
-│   ├── architecture.md                     # Engine, physics layers, scene tree, game-state layer, testing
-│   ├── gameplay_systems.md                 # Every system with its tuning numbers
-│   ├── roadmap.md                          # Sprints, community track, known issues
-│   └── formats/refractor_formats.md        # Legacy BF1942 format notes (not used by the game)
-└── tools/odc-converter/                    # Legacy C++20 converter skeleton (not used by the game)
+└── docs/
+    ├── design_goals.md                     # Pillars, reference match, gap analysis, asset policy
+    ├── architecture.md                     # Engine, physics layers, scene tree, game-state layer, testing
+    ├── gameplay_systems.md                 # Every system with its tuning numbers
+    └── roadmap.md                          # Sprints, community track, known issues
 ```
 
 ## Documentation
@@ -172,7 +170,6 @@ OpenDesertCombat/
 | [Architecture](docs/architecture.md) | Engine and platforms, physics layers, scene tree, game-state layer, vehicle contract, testing |
 | [Gameplay Systems](docs/gameplay_systems.md) | Teams, match & spawning, flags & tickets, deploy menu, HUD, damage, infantry, every vehicle |
 | [Roadmap](docs/roadmap.md) | Community track, sprint progress, known issues |
-| [Refractor Format Notes](docs/formats/refractor_formats.md) | Legacy BF1942 `.rfa` research notes |
 
 ## Tech Stack
 
