@@ -25,7 +25,8 @@ var fire_cooldown: float = 0.0
 var active_weapon: int = 1  # 1 = Rifle, 2 = RPG-7
 var rocket_scene: PackedScene = preload("res://scenes/weapons/rocket_projectile.tscn")
 
-## --- Kit ---
+## --- Team & Kit ---
+@export_enum("Neutral", "USMC", "OPFOR") var team: int = Teams.USMC
 var active_kit_id: int = 0  # 0=Assault, 1=Engineer, 2=Medic, 3=Sniper
 var _is_dead: bool = false
 
@@ -38,21 +39,58 @@ var _is_dead: bool = false
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _kit_menu: KitSelectMenu = null
-var _spawn_usmc: Node3D = null
+var _conquest: ConquestManager = null
+var _team_material: StandardMaterial3D = null
 
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	hud = get_tree().root.find_child("GameHUD", true, false) as GameHUD
 	_kit_menu = get_tree().root.find_child("KitSelectMenu", true, false) as KitSelectMenu
-	_spawn_usmc = get_tree().root.find_child("SpawnUSMC", true, false) as Node3D
+	_conquest = get_tree().root.find_child("ConquestManager", true, false) as ConquestManager
 
 	if health_component:
 		health_component.died.connect(_on_player_died)
 		health_component.health_changed.connect(_on_health_changed)
 
 	if _kit_menu:
-		_kit_menu.kit_selected.connect(_on_kit_selected)
+		_kit_menu.deploy_confirmed.connect(_on_deploy_confirmed)
+
+	if hud:
+		hud.set_local_player(self)
+	_apply_team_visuals()
+
+
+## --- Team ---
+
+func is_alive() -> bool:
+	return not _is_dead
+
+
+## The body that represents this soldier in the world: their vehicle while seated, else themselves.
+func get_presence_body() -> Node3D:
+	return current_vehicle if is_in_vehicle and current_vehicle else self
+
+
+func set_team(new_team: int) -> void:
+	team = new_team
+	_apply_team_visuals()
+
+
+func _apply_team_visuals() -> void:
+	var mesh := get_node_or_null("PlayerMesh") as MeshInstance3D
+	if not mesh:
+		return
+	if not _team_material:
+		_team_material = StandardMaterial3D.new()
+		_team_material.roughness = 0.85
+		mesh.material_override = _team_material
+	# Desert tan uniform with a strong team tint, so sides read at a glance
+	_team_material.albedo_color = Color(0.68, 0.6, 0.44).lerp(Teams.color_of(team), 0.55)
+
+
+func _get_team_spawn() -> Node3D:
+	return get_tree().root.find_child("Spawn" + Teams.name_of(team), true, false) as Node3D
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -307,16 +345,23 @@ func _on_player_died(_attacker: Node3D) -> void:
 		collision_shape.disabled = true
 	velocity = Vector3.ZERO
 
-	# Show kit selection menu
+	# Every death costs the team a ticket
+	if _conquest:
+		_conquest.on_player_killed(team)
+
+	# Show the deploy (team + kit) menu
 	if _kit_menu:
-		_kit_menu.show_menu()
+		_kit_menu.show_menu(team, active_kit_id)
 	else:
 		# Fallback: auto-respawn in 5 seconds
 		await get_tree().create_timer(5.0).timeout
 		_respawn()
 
 
-func _on_kit_selected(kit_id: int) -> void:
+func _on_deploy_confirmed(new_team: int, kit_id: int) -> void:
+	if not _is_dead:
+		return
+	set_team(new_team)
 	active_kit_id = kit_id
 	if _kit_menu:
 		var kit_data: Dictionary = _kit_menu.get_kit_data(kit_id)
@@ -333,9 +378,10 @@ func _respawn() -> void:
 	if collision_shape:
 		collision_shape.disabled = false
 
-	# Move to spawn point
-	if _spawn_usmc:
-		global_position = _spawn_usmc.global_position
+	# Move to own team's spawn point
+	var spawn := _get_team_spawn()
+	if spawn:
+		global_position = spawn.global_position
 	else:
 		global_position = Vector3(0.0, 2.0, 14.0)
 	velocity = Vector3.ZERO

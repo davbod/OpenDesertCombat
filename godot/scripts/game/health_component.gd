@@ -24,6 +24,8 @@ func _ready() -> void:
 func take_damage(amount: float, attacker: Node3D = null) -> void:
 	if _is_dead or is_invincible or amount <= 0.0:
 		return
+	if Teams.is_friendly_fire(attacker, get_parent()):
+		return
 	current_health = clampf(current_health - amount, 0.0, max_health)
 	emit_signal("damaged", amount, attacker)
 	emit_signal("health_changed", current_health, max_health)
@@ -43,6 +45,10 @@ func reset() -> void:
 	_is_dead = false
 	current_health = max_health
 	emit_signal("health_changed", current_health, max_health)
+
+
+func is_dead() -> bool:
+	return _is_dead
 
 
 func get_health_ratio() -> float:

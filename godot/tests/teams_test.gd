@@ -1,0 +1,253 @@
+## Headless test for Sprint 4.1 — teams, friendly fire, tickets, team respawn and flag capture.
+## Run from the repository root (after an --import pass):
+##   <godot> --headless --path godot/ --script res://tests/teams_test.gd
+## Exits non-zero if any check fails.
+
+extends SceneTree
+
+var failures: PackedStringArray = []
+var events: Array = []  # [point_name, team] from ConquestManager.point_captured
+
+var map: Node
+var player: PlayerController
+var conquest: ConquestManager
+var alpha: CapturePoint
+var bravo: CapturePoint
+var kit_menu: KitSelectMenu
+var hud: GameHUD
+var tank: Node3D
+
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+
+func _run() -> void:
+	map = (load("res://scenes/maps/test_desert.tscn") as PackedScene).instantiate()
+	root.add_child(map)
+	current_scene = map
+	player = map.find_child("Player", true, false) as PlayerController
+	conquest = map.find_child("ConquestManager", true, false) as ConquestManager
+	alpha = map.find_child("CapturePointAlpha", true, false) as CapturePoint
+	bravo = map.find_child("CapturePointBravo", true, false) as CapturePoint
+	kit_menu = map.find_child("KitSelectMenu", true, false) as KitSelectMenu
+	hud = map.find_child("GameHUD", true, false) as GameHUD
+	tank = map.find_child("Tank", true, false) as Node3D
+	if not (player and conquest and alpha and bravo and kit_menu and hud and tank):
+		_fail("test_desert.tscn is missing a required node")
+		_finish()
+		return
+	# Speed things up: 2 s per capture swing, near-instant deploy
+	alpha.capture_time = 2.0
+	bravo.capture_time = 2.0
+	kit_menu.spawn_countdown = 0.1
+	conquest.point_captured.connect(func(n: String, t: int) -> void: events.append([n, t]))
+	await _ticks(30)
+
+	_test_team_basics()
+	_test_friendly_fire()
+	_test_vehicle_teams()
+	await _test_death_and_team_respawn()
+	await _test_capture_and_hold()
+	await _test_vehicle_capture_and_contest()
+	_test_game_over()
+	_finish()
+
+
+func _test_team_basics() -> void:
+	print("\n-- Team basics")
+	_check(conquest.capture_points.size() == 2, "ConquestManager finds both capture points")
+	_check(Teams.enemy_of(Teams.USMC) == Teams.OPFOR and Teams.enemy_of(Teams.OPFOR) == Teams.USMC, "enemy_of is symmetric")
+	_check(Teams.of(null) == Teams.NONE, "Teams.of(null) is NONE")
+	_check(player.team == Teams.USMC, "player starts on USMC")
+	_check(alpha.owning_team == Teams.NONE and bravo.owning_team == Teams.NONE, "flags start neutral")
+
+
+func _test_friendly_fire() -> void:
+	print("\n-- Friendly fire")
+	var friend := _make_actor(Teams.USMC)
+	var enemy := _make_actor(Teams.OPFOR)
+	var hc := player.health_component
+	var hp := hc.current_health
+	hc.take_damage(25.0, friend)
+	_check(is_equal_approx(hc.current_health, hp), "teammate damage is ignored")
+	hc.take_damage(25.0, enemy)
+	_check(is_equal_approx(hc.current_health, hp - 25.0), "enemy damage applies")
+	hc.take_damage(10.0, player)
+	_check(is_equal_approx(hc.current_health, hp - 35.0), "self-damage applies")
+	hc.take_damage(5.0, null)
+	_check(is_equal_approx(hc.current_health, hp - 40.0), "damage with no attacker (crash/fall) applies")
+	Teams.friendly_fire = true
+	hc.take_damage(5.0, friend)
+	Teams.friendly_fire = false
+	_check(is_equal_approx(hc.current_health, hp - 45.0), "teammate damage applies when friendly fire is on")
+	hc.reset()
+	friend.queue_free()
+	enemy.queue_free()
+
+
+func _test_vehicle_teams() -> void:
+	print("\n-- Vehicle teams")
+	for vname in ["Tank", "Humvee", "Helicopter", "Jet"]:
+		var v := map.find_child(vname, true, false) as Node3D
+		if not v:
+			_fail("%s not found" % vname)
+			continue
+		v.call("enter_vehicle", player)
+		_check(Teams.of(v) == Teams.USMC, "%s takes its crew's team" % vname)
+		v.call("exit_vehicle", player)
+		_check(Teams.of(v) == Teams.NONE, "%s is neutral when empty" % vname)
+
+	var friend := _make_actor(Teams.USMC)
+	var enemy := _make_actor(Teams.OPFOR)
+	var thc := tank.find_child("HealthComponent", true, false) as HealthComponent
+	player._enter_vehicle(tank)
+	var hp := thc.current_health
+	thc.take_damage(100.0, friend)
+	_check(is_equal_approx(thc.current_health, hp), "teammate can't damage a crewed friendly vehicle")
+	thc.take_damage(100.0, enemy)
+	_check(is_equal_approx(thc.current_health, hp - 100.0), "enemy damages a crewed vehicle")
+	player._exit_vehicle()
+	thc.reset()
+	friend.queue_free()
+	enemy.queue_free()
+
+
+func _test_death_and_team_respawn() -> void:
+	print("\n-- Death costs a ticket; respawn on the chosen team")
+	var enemy := _make_actor(Teams.OPFOR)
+	var usmc_before: int = conquest.tickets[Teams.USMC]
+	player.health_component.take_damage(1000.0, enemy)
+	_check(not player.is_alive(), "player is dead")
+	_check(conquest.tickets[Teams.USMC] == usmc_before - 1, "USMC lost one ticket for the death (%d → %d)" % [usmc_before, conquest.tickets[Teams.USMC]])
+	_check(kit_menu.visible, "deploy menu is shown on death")
+
+	kit_menu.select_team(Teams.OPFOR)
+	kit_menu.select_kit(3)  # Sniper, 75 hp
+	kit_menu._on_confirm_pressed()
+	await _ticks(30)
+	var spawn := map.find_child("SpawnOPFOR", true, false) as Node3D
+	_check(player.is_alive(), "player respawned")
+	_check(player.team == Teams.OPFOR, "player switched to OPFOR")
+	_check(player.global_position.distance_to(spawn.global_position) < 2.0, "respawned at SpawnOPFOR (%.1f m away)" % player.global_position.distance_to(spawn.global_position))
+	_check(is_equal_approx(player.health_component.max_health, 75.0) and is_equal_approx(player.health_component.current_health, 75.0), "Sniper kit health applied")
+	enemy.queue_free()
+
+
+func _test_capture_and_hold() -> void:
+	print("\n-- OPFOR soldier captures Alpha; it stays owned when empty; USMC bleeds")
+	_teleport_player(alpha.global_position + Vector3(0, 1.0, 0))
+	await _ticks(60)
+	_check(hud.capture_panel.visible and hud.capture_label.text.begins_with("ALPHA"), "HUD shows capture progress (%s)" % hud.capture_label.text)
+	await _ticks(90)
+	_check(alpha.owning_team == Teams.OPFOR, "Alpha captured by OPFOR (progress %.2f)" % alpha.capture_progress)
+	_check(events.has(["Alpha", Teams.OPFOR]), "point_captured(Alpha, OPFOR) emitted")
+
+	_teleport_player(Vector3(0, 1.0, 150))
+	var usmc_before: int = conquest.tickets[Teams.USMC]
+	var opfor_before: int = conquest.tickets[Teams.OPFOR]
+	await _ticks(300)
+	_check(not hud.capture_panel.visible, "HUD capture panel hides after leaving the zone")
+	_check(alpha.owning_team == Teams.OPFOR and is_equal_approx(alpha.capture_progress, -1.0), "Alpha stays OPFOR with nobody near (progress %.2f)" % alpha.capture_progress)
+	var bled: int = usmc_before - conquest.tickets[Teams.USMC]
+	_check(bled >= 3, "USMC bleeds while OPFOR holds the majority (-%d in 5 s)" % bled)
+	_check(conquest.tickets[Teams.OPFOR] == opfor_before, "OPFOR does not bleed")
+
+
+func _test_vehicle_capture_and_contest() -> void:
+	print("\n-- USMC tank neutralises and recaptures Alpha; equal numbers hold the flag")
+	player.set_team(Teams.USMC)
+	player._enter_vehicle(tank)
+	_teleport_body(tank, alpha.global_position + Vector3(0, 1.5, 0))
+	await _ticks(300)
+	var alpha_events: Array = events.filter(func(e: Array) -> bool: return e[0] == "Alpha")
+	_check(alpha_events.has(["Alpha", Teams.NONE]), "Alpha neutralised on the way")
+	_check(alpha.owning_team == Teams.USMC, "occupied tank captured Alpha for USMC (progress %.2f)" % alpha.capture_progress)
+	_check(hud.capture_panel.visible, "HUD capture panel shows while seated in a vehicle")
+
+	var intruder := _make_contester(Teams.OPFOR, alpha.global_position + Vector3(6, 1.0, 0))
+	await _ticks(120)
+	_check(is_equal_approx(alpha.capture_progress, 1.0), "1 v 1 is contested: progress holds (%.2f)" % alpha.capture_progress)
+	_check(hud.capture_label.text.ends_with("CONTESTED"), "HUD says CONTESTED (%s)" % hud.capture_label.text)
+	intruder.queue_free()
+	player._exit_vehicle()
+
+
+func _test_game_over() -> void:
+	print("\n-- Running out of tickets ends the round")
+	var winner: Array = []
+	conquest.game_over.connect(func(t: int) -> void: winner.append(t))
+	conquest.tickets[Teams.OPFOR] = 1
+	conquest.on_player_killed(Teams.OPFOR)
+	_check(winner == [Teams.USMC], "USMC wins when OPFOR hits 0 tickets")
+	_check(not conquest.game_active, "round is no longer active")
+	_check(hud.center_message.visible and hud.center_message.text == "USMC WINS", "HUD shows the winner")
+
+
+## --- Helpers ---
+
+## A bare Node3D with a team, standing in for an attacker.
+func _make_actor(team: int) -> Node3D:
+	var script := GDScript.new()
+	script.source_code = "extends Node3D\nvar team: int = 0\n"
+	script.reload()
+	var node := Node3D.new()
+	node.set_script(script)
+	node.set("team", team)
+	map.add_child(node)
+	return node
+
+
+## A kinematic body on the Vehicles layer that capture points count for `team`.
+func _make_contester(team: int, pos: Vector3) -> CharacterBody3D:
+	var script := GDScript.new()
+	script.source_code = "extends CharacterBody3D\nvar team: int = 0\nvar is_occupied: bool = true\nfunc enter_vehicle(_p: Node3D) -> int:\n\treturn 0\n"
+	script.reload()
+	var body := CharacterBody3D.new()
+	body.set_script(script)
+	body.set("team", team)
+	body.collision_layer = 4
+	body.collision_mask = 0
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(2, 2, 2)
+	shape.shape = box
+	body.add_child(shape)
+	map.add_child(body)
+	body.global_position = pos
+	return body
+
+
+func _teleport_player(pos: Vector3) -> void:
+	player.global_position = pos
+	player.velocity = Vector3.ZERO
+
+
+func _teleport_body(body: Node3D, pos: Vector3) -> void:
+	body.global_position = pos
+	if body is RigidBody3D:
+		(body as RigidBody3D).linear_velocity = Vector3.ZERO
+		(body as RigidBody3D).angular_velocity = Vector3.ZERO
+
+
+func _ticks(n: int) -> void:
+	for i in range(n):
+		await physics_frame
+
+
+func _check(cond: bool, msg: String) -> void:
+	if cond:
+		print("  PASS  " + msg)
+	else:
+		print("  FAIL  " + msg)
+		failures.append(msg)
+
+
+func _fail(msg: String) -> void:
+	failures.append(msg)
+	print("  FAIL  " + msg)
+
+
+func _finish() -> void:
+	print("\n%d failure(s)" % failures.size())
+	quit(1 if failures.size() > 0 else 0)

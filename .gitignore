@@ -5,3 +5,4 @@ godot/.godot/
 *.o
 tools/odc-converter/bin/
 build/
+.DS_Store

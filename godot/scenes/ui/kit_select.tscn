@@ -36,9 +36,16 @@ grow_vertical = 2
 alignment = 1
 
 [node name="TitleLabel" type="Label" parent="CenterContainer"]
-text = "SELECT YOUR KIT"
+unique_name_in_owner = true
+text = "DEPLOY"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 28
+
+[node name="TeamButtons" type="HBoxContainer" parent="CenterContainer"]
+unique_name_in_owner = true
+alignment = 1
+custom_minimum_size = Vector2(0, 56)
+theme_override_constants/separation = 16
 
 [node name="KitButtons" type="HBoxContainer" parent="CenterContainer"]
 unique_name_in_owner = true

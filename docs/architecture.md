@@ -79,6 +79,7 @@ All vehicles implement a lightweight **duck-typed contract** checked by `PlayerC
 | `seat_positions` | `Array[Vector3]` | optional | Local position of each seat (cockpit / turret) |
 | `chase_camera_offset` | `Vector3` | optional | 3rd-person camera offset |
 | `is_occupied` | `bool` | optional | Vehicle logic gates input on this |
+| `team` | `int` | ✅ | Crew's team (`Teams.of(player)`) set in `enter_vehicle`, `Teams.NONE` in `exit_vehicle`. Used for capture counting and friendly fire |
 
 **Camera reparenting:** When entering a vehicle, `PlayerController`:
 1. Disables `PlayerCollision` and hides player mesh
@@ -106,20 +107,25 @@ All vehicles implement a lightweight **duck-typed contract** checked by `PlayerC
 
 ---
 
-## 6. Respawn & Kit Flow
+## 6. Teams, Respawn & Kit Flow
+
+Teams live in `Teams` (`scripts/game/teams.gd`): `NONE = 0`, `USMC = 1` (blue), `OPFOR = 2` (red), plus `of(node)` and the friendly-fire rule that `HealthComponent` applies. Any actor with a `team: int` property takes part. See [gameplay_systems.md](gameplay_systems.md#10-teams-teams).
+
 
 ```
 Player killed
     └─→ PlayerController._on_player_died()
             ├─→ hide player mesh, disable collision
-            └─→ KitSelectMenu.show_menu()
-                    └─→ [player selects kit + clicks DEPLOY]
+            ├─→ ConquestManager.on_player_killed(team)   (−1 ticket)
+            └─→ KitSelectMenu.show_menu(team, kit)
+                    └─→ [player selects team + kit, clicks DEPLOY]
                             └─→ 5 s countdown
-                                    └─→ kit_selected(kit_id) signal
-                                            └─→ PlayerController._on_kit_selected()
+                                    └─→ deploy_confirmed(team, kit_id) signal
+                                            └─→ PlayerController._on_deploy_confirmed()
+                                                    ├─→ set_team(team)  (uniform tint)
                                                     ├─→ HealthComponent.max_health = kit.health
                                                     ├─→ HealthComponent.reset()
-                                                    └─→ global_position = SpawnUSMC.global_position
+                                                    └─→ global_position = Spawn<TEAM>.global_position
 ```
 
 ---

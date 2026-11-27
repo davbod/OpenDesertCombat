@@ -19,6 +19,9 @@ An open-source modern military combined-arms FPS inspired by *Battlefield 1942: 
 
 # Jet flight-model test (takeoff, cruise, hard turn, stall, crash) — exits non-zero on failure:
 ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot/ --script res://tests/jet_flight_test.gd
+
+# Teams test (friendly fire, tickets, team respawn, flag capture/contest) — exits non-zero on failure:
+./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot/ --script res://tests/teams_test.gd
 ```
 
 > [!IMPORTANT] The Godot binary (`Godot_v4.4.1-stable_linux.x86_64`) is **not** committed. Download it from [godotengine.org](https://godotengine.org/download) or [GitHub releases](https://github.com/godotengine/godot/releases/tag/4.4.1-stable) and place it in the repository root.
@@ -56,7 +59,9 @@ An open-source modern military combined-arms FPS inspired by *Battlefield 1942: 
 | | Toggle Chase / Cockpit Camera | `V` |
 | **System** | Toggle Mouse Capture | `Esc` |
 
-## Kits (shown at death/respawn)
+## Teams & Kits (picked on the death screen)
+
+Pick **USMC** (blue) or **OPFOR** (red) and a kit, then **DEPLOY**. You respawn at your team's base. Friendly fire is off; every death costs your team a ticket.
 
 | Kit | Weapon | Health | Speed |
 |---|---|---|---|
@@ -98,7 +103,8 @@ OpenDesertCombat/
 │       ├── game/
 │       │   ├── capture_point.gd            # Zone capture state & flag color updates
 │       │   ├── conquest_manager.gd         # Team tickets, bleed & win condition
-│       │   ├── health_component.gd         # Reusable health/damage/die node
+│       │   ├── health_component.gd         # Reusable health/damage/die node (+ friendly-fire rule)
+│       │   ├── teams.gd                    # Team ids, names, colours, friendly fire
 │       │   └── vehicle_spawn_manager.gd    # 30 s vehicle wreck + respawn system
 │       ├── maps/
 │       │   └── test_desert.gd              # Map startup script
@@ -106,7 +112,7 @@ OpenDesertCombat/
 │       │   └── player_controller.gd        # FPS movement, vehicle interaction, weapons, respawn
 │       ├── ui/
 │       │   ├── game_hud.gd                 # HUD signals & vehicle telemetry display
-│       │   └── kit_select_menu.gd          # Kit picker logic & respawn countdown
+│       │   └── kit_select_menu.gd          # Team + kit picker & respawn countdown
 │       ├── vehicles/
 │       │   ├── helicopter_controller.gd    # 6-DOF flight physics + Hydra 70 pods
 │       │   ├── jet_controller.gd           # Lift/stall/drag model, fly-by-wire, cannon + bombs
