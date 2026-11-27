@@ -22,11 +22,14 @@ var current_seat: int = -1
 var use_chase_camera: bool = false
 var hud: GameHUD = null
 var fire_cooldown: float = 0.0
-var active_weapon: int = 1  # 1 = Rifle, 2 = RPG-7
+var active_weapon: int = 1  # 1 = Rifle, 2 = RPG
 var rocket_scene: PackedScene = preload("res://scenes/weapons/rocket_projectile.tscn")
 
-## --- Kit ---
+## --- Team & Kit ---
+@export_enum("Neutral", "USMC", "OPFOR") var team: int = Teams.USMC
 var active_kit_id: int = 0  # 0=Assault, 1=Engineer, 2=Medic, 3=Sniper
+var speed_multiplier: float = 1.0  ## From the kit
+var participant: Participant = null  ## This soldier's entry in the MatchManager registry
 var _is_dead: bool = false
 
 ## --- Nodes ---
@@ -38,21 +41,65 @@ var _is_dead: bool = false
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _kit_menu: KitSelectMenu = null
-var _spawn_usmc: Node3D = null
+var _match: MatchManager = null
+var _team_material: StandardMaterial3D = null
 
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	hud = get_tree().root.find_child("GameHUD", true, false) as GameHUD
 	_kit_menu = get_tree().root.find_child("KitSelectMenu", true, false) as KitSelectMenu
-	_spawn_usmc = get_tree().root.find_child("SpawnUSMC", true, false) as Node3D
+	_match = get_tree().root.find_child("MatchManager", true, false) as MatchManager
+	if _match:
+		participant = _match.register(self, "Player", team, true)
 
 	if health_component:
 		health_component.died.connect(_on_player_died)
 		health_component.health_changed.connect(_on_health_changed)
 
 	if _kit_menu:
-		_kit_menu.kit_selected.connect(_on_kit_selected)
+		_kit_menu.deploy_requested.connect(_on_deploy_requested)
+
+	if hud:
+		hud.set_local_player(self)
+	_apply_team_visuals()
+
+
+## --- Team ---
+
+func is_alive() -> bool:
+	return not _is_dead
+
+
+## The body that represents this soldier in the world: their vehicle while seated, else themselves.
+func get_presence_body() -> Node3D:
+	return current_vehicle if is_in_vehicle and current_vehicle else self
+
+
+func set_team(new_team: int) -> void:
+	team = new_team
+	_apply_team_visuals()
+
+
+func _apply_team_visuals() -> void:
+	var mesh := get_node_or_null("PlayerMesh") as MeshInstance3D
+	if not mesh:
+		return
+	if not _team_material:
+		_team_material = StandardMaterial3D.new()
+		_team_material.roughness = 0.85
+		mesh.material_override = _team_material
+	# Desert tan uniform with a strong team tint, so sides read at a glance
+	_team_material.albedo_color = Color(0.68, 0.6, 0.44).lerp(Teams.color_of(team), 0.55)
+
+
+## Without a MatchManager (e.g. a bare test scene): any spawn point our team holds.
+func _get_fallback_spawn() -> SpawnPoint:
+	for node in get_tree().get_nodes_in_group(SpawnPoint.GROUP):
+		var spawn := node as SpawnPoint
+		if spawn and spawn.get_team() == team:
+			return spawn
+	return null
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -89,6 +136,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			use_chase_camera = not use_chase_camera
 			_apply_vehicle_camera_offset()
 
+	# Dev shortcut until the 4.3 pause menu: K = respawn (die and open the deploy menu)
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_K:
+		if health_component:
+			health_component.take_damage(health_component.current_health, self)
+		return
+
 	# Weapon switch (1 = Rifle, 2 = RPG)
 	if not is_in_vehicle and event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_1:
@@ -123,6 +176,7 @@ func _physics_process(delta: float) -> void:
 		speed = sprint_speed
 	elif Input.is_action_pressed("crouch"):
 		speed = crouch_speed
+	speed *= speed_multiplier
 
 	# Input direction
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
@@ -164,7 +218,7 @@ func _fire_rifle() -> void:
 	var space_state := get_world_3d().direct_space_state
 	var origin := camera.global_position
 	var forward := -camera.global_transform.basis.z
-	var query := PhysicsRayQueryParameters3D.create(origin, origin + forward * 300.0, 5)
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + forward * 300.0, 7)  # World + Players + Vehicles
 	query.exclude = [get_rid()]
 	var result := space_state.intersect_ray(query)
 	if result:
@@ -270,7 +324,7 @@ func _exit_vehicle() -> void:
 	camera_pivot.rotation = Vector3.ZERO
 
 	# Place player safely beside vehicle
-	var side_offset: Vector3 = current_vehicle.transform.basis.x * 3.5
+	var side_offset: Vector3 = current_vehicle.global_transform.basis.x * 3.5
 	side_offset.y = 0.0
 	global_position = current_vehicle.global_position + side_offset + Vector3.UP * 1.5
 	velocity = Vector3.ZERO
@@ -307,39 +361,46 @@ func _on_player_died(_attacker: Node3D) -> void:
 		collision_shape.disabled = true
 	velocity = Vector3.ZERO
 
-	# Show kit selection menu
-	if _kit_menu:
-		_kit_menu.show_menu()
+	# MatchManager listens to the same signal: it records the death, tickets and score.
+	if _kit_menu and _match and participant:
+		_kit_menu.show_menu(_match, participant)
 	else:
-		# Fallback: auto-respawn in 5 seconds
+		# Fallback without a match: respawn at a spawn our team holds after 5 s
 		await get_tree().create_timer(5.0).timeout
-		_respawn()
+		var spawn := _get_fallback_spawn()
+		var xform := spawn.get_spawn_transform() if spawn else Transform3D(Basis(), Vector3(0.0, 2.0, 14.0))
+		spawn_at(xform, team, active_kit_id)
 
 
-func _on_kit_selected(kit_id: int) -> void:
-	active_kit_id = kit_id
+## Deploy menu → ask the match to spawn us. The match validates and calls spawn_at().
+func _on_deploy_requested(new_team: int, kit_id: int, spawn: SpawnPoint) -> void:
+	if not _is_dead or not _match or not participant:
+		return
+	var reason := _match.request_spawn(participant, new_team, kit_id, spawn)
 	if _kit_menu:
-		var kit_data: Dictionary = _kit_menu.get_kit_data(kit_id)
-		if health_component:
-			health_component.max_health = kit_data.get("health", 100.0) as float
-	_respawn()
+		if reason.is_empty():
+			_kit_menu.close()
+		else:
+			_kit_menu.report_spawn_failed(reason)
 
 
-func _respawn() -> void:
-	_is_dead = false
+## Puts this soldier back in the world. Called by MatchManager once a spawn is approved.
+func spawn_at(xform: Transform3D, new_team: int, kit_id: int) -> void:
+	set_team(new_team)
+	active_kit_id = kit_id
+	var kit := Kits.get_kit(kit_id)
+	speed_multiplier = kit.get("speed", 1.0) as float
 	if health_component:
+		health_component.max_health = kit.get("health", 100.0) as float
 		health_component.reset()
+	_is_dead = false
 	visible = true
 	if collision_shape:
 		collision_shape.disabled = false
-
-	# Move to spawn point
-	if _spawn_usmc:
-		global_position = _spawn_usmc.global_position
-	else:
-		global_position = Vector3(0.0, 2.0, 14.0)
+	global_position = xform.origin
+	rotation = Vector3(0.0, xform.basis.get_euler().y, 0.0)
+	camera_pivot.rotation = Vector3.ZERO
 	velocity = Vector3.ZERO
-
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 

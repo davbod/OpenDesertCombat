@@ -28,17 +28,24 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -300.0
-offset_top = -200.0
+offset_top = -270.0
 offset_right = 300.0
-offset_bottom = 200.0
+offset_bottom = 270.0
 grow_horizontal = 2
 grow_vertical = 2
 alignment = 1
 
 [node name="TitleLabel" type="Label" parent="CenterContainer"]
-text = "SELECT YOUR KIT"
+unique_name_in_owner = true
+text = "DEPLOY"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 28
+
+[node name="TeamButtons" type="HBoxContainer" parent="CenterContainer"]
+unique_name_in_owner = true
+alignment = 1
+custom_minimum_size = Vector2(0, 56)
+theme_override_constants/separation = 16
 
 [node name="KitButtons" type="HBoxContainer" parent="CenterContainer"]
 unique_name_in_owner = true
@@ -53,9 +60,21 @@ theme_override_font_sizes/font_size = 22
 
 [node name="KitWeaponLabel" type="Label" parent="CenterContainer"]
 unique_name_in_owner = true
-text = "Weapon: M4A1 + Grenades"
+text = "Weapon: Assault Rifle + Grenades"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 16
+
+[node name="SpawnHeader" type="Label" parent="CenterContainer"]
+text = "SPAWN POINT"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 16
+modulate = Color(1, 1, 1, 0.7)
+
+[node name="SpawnButtons" type="HBoxContainer" parent="CenterContainer"]
+unique_name_in_owner = true
+alignment = 1
+custom_minimum_size = Vector2(0, 48)
+theme_override_constants/separation = 10
 
 [node name="CountdownLabel" type="Label" parent="CenterContainer"]
 unique_name_in_owner = true

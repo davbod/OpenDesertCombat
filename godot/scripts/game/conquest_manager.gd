@@ -1,92 +1,104 @@
 ## Conquest Game Mode Manager
 ## Manages capture points, team tickets, and win/loss conditions.
+## Team ids come from `Teams` (USMC = 1, OPFOR = 2).
+##
+## Ticket bleed: the team holding fewer flags loses
+##   bleed_rate × flag_difference / total_flags   tickets per second,
+## accumulated as a fraction per team; whole tickets come off as the fraction crosses 1.
+## On the test map (4 flags, 2 of them uncapturable bases) the default bleed_rate of 2.0
+## bleeds 1 ticket/s at full control (300 tickets ≈ 5 min) and 0.5 ticket/s with a
+## one-flag lead (≈ 10 min).
 
 extends Node
 class_name ConquestManager
 
-signal ticket_updated(team: int, tickets: int)
+signal ticket_updated(team: int, tickets: int)  ## Only when a team's whole ticket count changes
 signal point_captured(point_name: String, team: int)
 signal game_over(winning_team: int)
 
 ## --- Configuration ---
 @export var starting_tickets: int = 300
-@export var bleed_rate: float = 1.0  ## Tickets lost per second when enemy holds majority
-@export var kill_ticket_cost: int = 1  ## Tickets lost per kill
-
-## --- Teams ---
-enum Team { NONE = 0, USMC = 1, OPFOR = 2 }
+@export var bleed_rate: float = 2.0  ## Tickets per second lost while the enemy holds every flag; scaled by flag_difference / total_flags
+@export var kill_ticket_cost: int = 1  ## Tickets a team loses each time one of its soldiers dies
 
 ## --- State ---
-var tickets: Dictionary = { Team.USMC: 300, Team.OPFOR: 300 }
+var tickets: Dictionary = { Teams.USMC: 300, Teams.OPFOR: 300 }
 var capture_points: Array[CapturePoint] = []
-var bleed_timer: float = 0.0
 var game_active: bool = true
+
+var _bleed_accumulator: Dictionary = { Teams.USMC: 0.0, Teams.OPFOR: 0.0 }  ## Fraction of a ticket bled but not yet removed
 
 
 func _ready() -> void:
-	tickets[Team.USMC] = starting_tickets
-	tickets[Team.OPFOR] = starting_tickets
-	# Find all capture points in the scene
-	_find_capture_points(get_tree().root)
+	tickets[Teams.USMC] = starting_tickets
+	tickets[Teams.OPFOR] = starting_tickets
+	for node in get_tree().get_nodes_in_group(CapturePoint.GROUP):
+		var point := node as CapturePoint
+		if point:
+			capture_points.append(point)
+			point.captured.connect(_on_point_captured)
 
 
-func _find_capture_points(node: Node) -> void:
-	if node is CapturePoint:
-		capture_points.append(node)
-		node.captured.connect(_on_point_captured)
-	for child in node.get_children():
-		_find_capture_points(child)
-
-
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not game_active:
 		return
-
-	bleed_timer += delta
-	if bleed_timer >= 1.0:
-		bleed_timer -= 1.0
-		_apply_ticket_bleed()
-		_check_game_over()
+	_apply_ticket_bleed(delta)
+	_check_game_over()
 
 
-func _apply_ticket_bleed() -> void:
-	var usmc_points = 0
-	var opfor_points = 0
+func count_points(team: int) -> int:
+	var n := 0
 	for point in capture_points:
-		if point.owning_team == Team.USMC:
-			usmc_points += 1
-		elif point.owning_team == Team.OPFOR:
-			opfor_points += 1
-
-	var total = capture_points.size()
-	if total == 0:
-		return
-
-	# Team with fewer points bleeds tickets
-	if usmc_points > opfor_points:
-		var bleed = ceili(bleed_rate * (float(usmc_points - opfor_points) / total))
-		tickets[Team.OPFOR] = maxi(0, tickets[Team.OPFOR] - bleed)
-		ticket_updated.emit(Team.OPFOR, tickets[Team.OPFOR])
-	elif opfor_points > usmc_points:
-		var bleed = ceili(bleed_rate * (float(opfor_points - usmc_points) / total))
-		tickets[Team.USMC] = maxi(0, tickets[Team.USMC] - bleed)
-		ticket_updated.emit(Team.USMC, tickets[Team.USMC])
+		if point.owning_team == team:
+			n += 1
+	return n
 
 
+## Tickets per second `team` is losing right now because the enemy holds more flags.
+func get_bleed_per_second(team: int) -> float:
+	var total := capture_points.size()
+	var deficit := count_points(Teams.enemy_of(team)) - count_points(team)
+	if total == 0 or deficit <= 0:
+		return 0.0
+	return bleed_rate * float(deficit) / float(total)
+
+
+func _apply_ticket_bleed(delta: float) -> void:
+	for team: int in Teams.PLAYABLE:
+		var rate := get_bleed_per_second(team)
+		if rate <= 0.0:
+			continue
+		var accumulated: float = _bleed_accumulator[team] + rate * delta
+		var whole := floori(accumulated + 1e-6)  # so 120 × (1/120) s is a whole ticket, not 0.99999…
+		_bleed_accumulator[team] = maxf(0.0, accumulated - whole)
+		if whole > 0:
+			_remove_tickets(team, whole)
+
+
+## Called whenever a soldier dies (any cause). Costs their team a ticket.
 func on_player_killed(victim_team: int) -> void:
-	if victim_team in tickets:
-		tickets[victim_team] = maxi(0, tickets[victim_team] - kill_ticket_cost)
-		ticket_updated.emit(victim_team, tickets[victim_team])
-		_check_game_over()
+	if not game_active or not tickets.has(victim_team):
+		return
+	_remove_tickets(victim_team, kill_ticket_cost)
+	_check_game_over()
+
+
+func _remove_tickets(team: int, amount: int) -> void:
+	var before: int = tickets[team]
+	tickets[team] = maxi(0, before - amount)
+	if tickets[team] != before:
+		ticket_updated.emit(team, tickets[team])
 
 
 func _check_game_over() -> void:
-	if tickets[Team.USMC] <= 0:
+	if not game_active:
+		return
+	if tickets[Teams.USMC] <= 0:
 		game_active = false
-		game_over.emit(Team.OPFOR)
-	elif tickets[Team.OPFOR] <= 0:
+		game_over.emit(Teams.OPFOR)
+	elif tickets[Teams.OPFOR] <= 0:
 		game_active = false
-		game_over.emit(Team.USMC)
+		game_over.emit(Teams.USMC)
 
 
 func _on_point_captured(point_name: String, team: int) -> void:

@@ -1,7 +1,4 @@
 Godot_v4.4.1-stable_linux.x86_64
-*.import
 .godot/
 godot/.godot/
-*.o
-tools/odc-converter/bin/
-build/
+.DS_Store

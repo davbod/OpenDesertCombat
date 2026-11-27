@@ -1,15 +1,13 @@
-## Test Desert Map Scene Generator
-## Run this in the Godot editor or as a tool script to generate the test scene.
-## For now, we create the .tscn file directly.
-
-## This is the main test map scene — a flat desert terrain with a helicopter,
-## player spawn, sun, and basic environment.
+## Test desert map (the main scene): flat 8 km desert, two main bases, two neutral flags and
+## the vehicle spawns. The layout lives in test_desert.tscn; this script only starts the map.
 
 @tool
 extends Node3D
+class_name TestDesertMap
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
-	print("OpenDesertCombat v0.1.0 — Test Desert Map Loaded")
+	var version: String = ProjectSettings.get_setting("application/config/version", "")
+	print("OpenDesertCombat v%s — Test Desert Map Loaded" % version)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

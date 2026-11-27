@@ -1,10 +1,10 @@
-## Ground Wheeled Vehicle Controller (Humvee / Desert Recon)
+## Utility vehicle controller (wheeled 4×4).
 ## Uses Godot's VehicleBody3D with Jolt Physics.
 
 extends VehicleBody3D
 class_name HumveeController
 
-@export var vehicle_name: String = "HMMWV Desert Recon"
+@export var vehicle_name: String = "Utility Vehicle"
 @export var max_engine_force: float = 3200.0
 @export var max_brake_force: float = 80.0
 @export var max_steer_angle: float = 0.45
@@ -13,6 +13,8 @@ class_name HumveeController
 @export var chase_camera_offset: Vector3 = Vector3(0.0, 2.8, 7.5)
 
 var is_occupied: bool = false
+var team: int = Teams.NONE  ## Crew's team while occupied, NONE when empty
+var occupant: Node3D = null  ## Driver/pilot while occupied
 var current_steer: float = 0.0
 
 
@@ -46,12 +48,16 @@ func _physics_process(delta: float) -> void:
 		engine_force = throttle * max_engine_force
 
 
-func enter_vehicle(_player: Node3D) -> int:
+func enter_vehicle(player: Node3D) -> int:
 	is_occupied = true
+	team = Teams.of(player)
+	occupant = player
 	return 0
 
 
 func exit_vehicle(_player: Node3D) -> void:
 	is_occupied = false
+	team = Teams.NONE
+	occupant = null
 	engine_force = 0.0
 	brake = 15.0

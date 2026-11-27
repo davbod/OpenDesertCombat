@@ -1,40 +1,48 @@
 ## TankController — Tracks-based tank using RigidBody3D + Jolt physics.
 ## Turret yaw is driven by mouse X; barrel pitch by mouse Y (clamped).
-## Left-click fires the main cannon; passengers supported via enter/exit contract.
+## Left-click fires the main cannon (hitscan HE shell: direct hit + splash via Explosion);
+## passengers supported via enter/exit contract.
 
 extends RigidBody3D
 class_name TankController
 
 ## --- Vehicle Contract ---
-var vehicle_name: String = "M1A1 Abrams"
+var vehicle_name: String = "Main Battle Tank"
 var seat_positions: Array[Vector3] = [Vector3(0.0, 1.35, -0.4)]
 var chase_camera_offset: Vector3 = Vector3(0.0, 3.5, 9.0)
 var is_occupied: bool = false
+var team: int = Teams.NONE  ## Crew's team while occupied, NONE when empty
 
 ## --- Drive ---
 @export var drive_force: float = 220000.0
 @export var turn_torque: float = 180000.0
 @export var brake_force: float = 95000.0
 @export var max_speed: float = 18.0        ## m/s (~65 km/h)
-@export var linear_damping_ground: float = 1.8
 @export var angular_damping_factor: float = 4.5
 
 ## --- Turret ---
-@export var turret_turn_speed: float = 1.4   ## rad/s
 @export var barrel_pitch_min: float = -5.0   ## degrees, below horizontal
 @export var barrel_pitch_max: float = 15.0   ## degrees, above horizontal
 @export var turret_mouse_sensitivity: float = 0.0018
 
 ## --- Cannon ---
-@export var cannon_damage: float = 250.0
-@export var cannon_speed: float = 580.0
+# Hitscan high-explosive shell: the body it hits takes cannon_damage, and a blast around the
+# impact hurts infantry (and, a little, vehicles) nearby. The tracer is visual only.
+const CANNON_HIT_MASK: int = 7  ## World (1) + Players (2) + Vehicles (4)
+
+@export var cannon_damage: float = 250.0  ## Direct hit on a soldier or vehicle
+@export var cannon_speed: float = 580.0  ## Tracer speed
 @export var cannon_range: float = 1800.0
 @export var fire_cooldown_time: float = 3.5
+@export var splash_radius: float = 6.0
+@export var splash_infantry_damage: float = 150.0  ## At the impact; falls off to 0 at splash_radius
+@export var splash_vehicle_damage: float = 40.0  ## At the impact; falls off to 0 at splash_radius
+@export var splash_impulse: float = 15000.0
 
 var _fire_cooldown: float = 0.0
 var _turret_yaw: float = 0.0
 var _barrel_pitch: float = 0.0
-var _occupant: Node3D = null
+var occupant: Node3D = null  ## Driver/pilot while occupied
 var _cannon_scene: PackedScene = preload("res://scenes/weapons/cannon_shell.tscn")
 
 @onready var turret_pivot: Node3D = $TurretPivot
@@ -46,13 +54,15 @@ var _cannon_scene: PackedScene = preload("res://scenes/weapons/cannon_shell.tscn
 
 func enter_vehicle(player: Node3D) -> int:
 	is_occupied = true
-	_occupant = player
+	team = Teams.of(player)
+	occupant = player
 	return 0  # driver seat
 
 
 func exit_vehicle(_player: Node3D) -> void:
 	is_occupied = false
-	_occupant = null
+	team = Teams.NONE
+	occupant = null
 
 
 ## ---- Input -----------------------------------------------------------
@@ -130,31 +140,25 @@ func _fire_cannon() -> void:
 	var space_state := get_world_3d().direct_space_state
 	var origin: Vector3 = muzzle.global_position
 	var forward: Vector3 = -muzzle.global_transform.basis.z
-	var query := PhysicsRayQueryParameters3D.create(
-		origin,
-		origin + forward * cannon_range,
-		5  # World (1) + Vehicles (4)
-	)
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + forward * cannon_range, CANNON_HIT_MASK)
 	query.exclude = [get_rid()]
 	var result := space_state.intersect_ray(query)
 
 	var hit_pos: Vector3 = result.position if result else origin + forward * cannon_range
 
-	# Damage health component on hit body
+	# HE detonation: direct hit takes cannon_damage, the rest of the blast takes splash.
+	# The occupant is the attacker, for friendly fire and kill credit.
 	if result:
-		var body: Object = result.get("collider")
-		if body is Node:
-			var hc: HealthComponent = (body as Node).find_child("HealthComponent", true, false) as HealthComponent
-			if hc:
-				hc.take_damage(cannon_damage, _occupant)
+		Explosion.detonate(self, hit_pos, splash_radius, splash_vehicle_damage, splash_infantry_damage,
+				splash_impulse, occupant, result.get("collider") as Object, cannon_damage)
 
-	# Instantiate visual cannon shell tracer
-	var shell: Node3D = _cannon_scene.instantiate() as Node3D
+	# Visual tracer that stops at the impact point
+	var shell := _cannon_scene.instantiate() as CannonShell
 	var scene_root: Node = get_tree().current_scene if get_tree().current_scene else get_tree().root
 	scene_root.add_child(shell)
 	shell.global_position = origin
-	if shell.has_method("launch"):
-		shell.call("launch", forward * cannon_speed, Vector3.ZERO, self)
+	shell.max_distance = origin.distance_to(hit_pos)
+	shell.launch(forward * cannon_speed, Vector3.ZERO, self)
 
 	# Muzzle flash
 	_spawn_muzzle_flash(origin)

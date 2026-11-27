@@ -1,27 +1,59 @@
 # OpenDesertCombat (ODC)
 
-An open-source modern military combined-arms FPS inspired by *Battlefield 1942: Desert Combat*, built with **Godot 4.4** + **Jolt Physics** and targeting Linux natively.
+An open-source, modern-military combined-arms shooter inspired by *Desert Combat*, built
+with **Godot 4.4** and **Jolt Physics**. The *Open* in the name is about open terrain and
+long-range battles — it also happens to be open source.
 
-> [!NOTE] This is an **early prototype** (Sprint 2 complete). Helicopter, F-16 jet, Humvee, and Tank are driveable; infantry FPS combat and Conquest mode are functional; kit selection and respawn are implemented. Multiplayer and heightmap terrain are Sprint 3–4 targets.
+> [!NOTE] **Early prototype — Sprint 4 (the Conquest loop) is in progress.** Red vs blue
+> teams, flag capture, spawning at captured flags, vehicles that belong to flags and the
+> deploy menu all work. The attack helicopter, multirole fighter jet, utility vehicle and
+> main battle tank are driveable. There are no opponents yet: bots arrive in Sprint 5,
+> multiplayer in Sprint 6. See the [roadmap](docs/roadmap.md).
+
+ODC is an independent, original game. It is not affiliated with or endorsed by Electronic
+Arts, DICE or the original *Desert Combat* team, and contains no assets from their games
+(see the [asset policy](docs/design_goals.md)).
 
 ## Quick Start
 
+You need **Godot 4.4.1** (standard build, not .NET) from
+[godotengine.org](https://godotengine.org/download/archive/4.4.1-stable/) or
+[GitHub releases](https://github.com/godotengine/godot/releases/tag/4.4.1-stable).
+The binary is not committed.
+
 ```bash
-# Run the game (from repository root):
-./Godot_v4.4.1-stable_linux.x86_64 --path godot/
+# Point GODOT at your Godot 4.4.1 binary, for example:
+export GODOT=./Godot_v4.4.1-stable_linux.x86_64             # Linux (repo root, gitignored)
+export GODOT=/Applications/Godot.app/Contents/MacOS/Godot   # macOS
 
-# Open in the Godot 4.4 editor:
-./Godot_v4.4.1-stable_linux.x86_64 --editor --path godot/
-
-# Headless validation (CI / no display):
-./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot/ --import --quit
-./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot/ --quit
-
-# Jet flight-model test (takeoff, cruise, hard turn, stall, crash) — exits non-zero on failure:
-./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot/ --script res://tests/jet_flight_test.gd
+"$GODOT" --path godot/                   # play
+"$GODOT" --editor --path godot/          # open in the editor
+"$GODOT" --headless --path godot/ --import --quit   # import once after pulling
 ```
 
-> [!IMPORTANT] The Godot binary (`Godot_v4.4.1-stable_linux.x86_64`) is **not** committed. Download it from [godotengine.org](https://godotengine.org/download) or [GitHub releases](https://github.com/godotengine/godot/releases/tag/4.4.1-stable) and place it in the repository root.
+### Tests
+
+Headless test suites, run in real time (about 100 s in total). The runner does the import,
+runs every suite, prints a pass/fail table and exits non-zero if anything failed. It works
+from any directory; [CI](.github/workflows/ci.yml) runs the same script on every pull
+request and push to `master`.
+
+```bash
+godot/tests/run_all.sh              # all suites
+godot/tests/run_all.sh match_test   # just one
+```
+
+A single suite can also run directly (exit code 0 = pass):
+`"$GODOT" --headless --path godot/ --script res://tests/match_test.gd`. New suites are picked
+up automatically: name them `*_test.gd` and extend `res://tests/test_base.gd` (see
+[Architecture § Testing](docs/architecture.md#8-testing)).
+
+| Suite | Covers |
+|---|---|
+| `teams_test.gd` | Friendly fire, vehicle teams, tickets, team respawn, flag capture / hold / contest, game over |
+| `match_test.gd` | Participants, kill credit, spawn rules, flag spawns, deploy menu, main bases, vehicle wreck / abandon / respawn |
+| `jet_flight_test.gd` | Jet takeoff, climb, cruise, hard turn, stall, crash |
+| `combat_test.gd` | Rifle and RPG against soldiers, friendly fire, tank HE direct hit and splash, helicopter rocket and bomb credit after the pilot bails out, splash on a multi-shape vehicle, bomb direct hit, ticket bleed rate |
 
 ## Controls
 
@@ -29,124 +61,141 @@ An open-source modern military combined-arms FPS inspired by *Battlefield 1942: 
 |---|---|---|
 | **Infantry** | Move | `W` `A` `S` `D` |
 | | Sprint / Crouch / Jump | `Left Shift` / `Left Ctrl` / `Space` |
-| | Fire (Rifle or RPG-7) | `Left Mouse` |
-| | Switch Weapon (Rifle / RPG-7) | `1` / `2` |
-| | Enter / Exit Vehicle | `E` |
-| **Helicopter** | Collective Up / Down | `W` / `S` |
-| | Yaw Left / Right | `A` / `D` |
-| | Cyclic Pitch / Roll | `Mouse` |
-| | Fire Hydra 70 Rockets | `Left Mouse` |
-| | Toggle Chase / Cockpit Camera | `V` |
-| **Humvee** | Throttle / Reverse | `W` / `S` |
-| | Steer Left / Right | `A` / `D` |
+| | Fire (rifle or RPG) | `Left Mouse` |
+| | Switch weapon (rifle / RPG) | `1` / `2` |
+| | Enter / exit vehicle | `E` |
+| **Helicopter** | Collective up / down | `W` / `S` |
+| | Yaw left / right | `A` / `D` |
+| | Cyclic pitch / roll | `Mouse` |
+| | Fire rockets | `Left Mouse` |
+| | Toggle chase / cockpit camera | `V` |
+| **Utility vehicle** | Throttle / reverse | `W` / `S` |
+| | Steer left / right | `A` / `D` |
 | | Handbrake | `Space` |
-| | Toggle Chase / Cockpit Camera | `V` |
-| **Tank** | Throttle / Reverse | `W` / `S` |
-| | Turn Left / Right | `A` / `D` |
-| | Rotate Turret | `Mouse X` |
-| | Elevate Barrel | `Mouse Y` |
-| | Fire Main Cannon | `Left Mouse` |
-| | Toggle Chase / Cockpit Camera | `V` |
-| **Jet** | Throttle Up / Down | `W` / `S` (hold) |
-| | Rudder Left / Right | `A` / `D` |
-| | Pitch / Roll | `Mouse` (virtual stick, self-centring) |
-| | Fire 20 mm Cannon | `Left Mouse` |
-| | Drop Bomb (4, rearm 10 s each) | `Right Mouse` |
-| | Wheel Brake (on runway) | `Space` |
-| | Toggle Chase / Cockpit Camera | `V` |
-| **System** | Toggle Mouse Capture | `Esc` |
+| | Toggle chase / cockpit camera | `V` |
+| **Tank** | Throttle / reverse | `W` / `S` |
+| | Turn left / right | `A` / `D` |
+| | Rotate turret / elevate barrel | `Mouse X` / `Mouse Y` |
+| | Fire main cannon | `Left Mouse` |
+| | Toggle chase / cockpit camera | `V` |
+| **Jet** | Throttle up / down | `W` / `S` (hold) |
+| | Rudder left / right | `A` / `D` |
+| | Pitch / roll | `Mouse` (virtual stick, self-centring) |
+| | Fire 20 mm cannon | `Left Mouse` |
+| | Drop bomb (4, one rearms every 10 s) | `Right Mouse` |
+| | Wheel brake (on the runway) | `Space` |
+| | Toggle chase / cockpit camera | `V` |
+| **Deploy menu** | Pick team, kit and spawn point, then DEPLOY | `Mouse` |
+| **System** | Toggle mouse capture | `Esc` |
+| | Respawn (die → deploy menu; temporary until the pause menu) | `K` |
 
-## Kits (shown at death/respawn)
+## How a Match Works
 
-| Kit | Weapon | Health | Speed |
+- Two teams: **USMC** (blue) and **OPFOR** (red), 300 tickets each.
+- **Flags:** stand on a flag (or drive onto it) to capture it. An enemy flag lowers and turns
+  neutral first, then rises in your colour. Capturing takes 10 s alone, faster with more
+  soldiers; equal numbers contest it.
+- **Main bases** (bigger flag with a ring) can't be captured — they're each team's
+  guaranteed spawn.
+- **Tickets:** the team holding fewer flags bleeds tickets, faster the bigger the lead, and
+  every death costs a ticket. First to 0 loses. On the test map, holding both middle flags
+  drains the enemy's 300 tickets in about 5 minutes; a one-flag lead takes about 10.
+- **Respawn:** after a 10 s timer, pick a team, a kit and a spawn point — your main base or
+  any flag your team holds. Capturing a flag also gives your team the vehicles parked there.
+- Friendly fire is off.
+
+| Kit | Listed weapon | Health | Speed |
 |---|---|---|---|
-| Assault | M4A1 + Grenades | 100 | 1.0× |
-| Engineer | MP5 + AT Mines | 85 | 1.05× |
-| Medic | M60 + Medkits | 110 | 0.9× |
-| Sniper | M24 + C4 | 75 | 1.1× |
+| Assault | Assault Rifle + Grenades | 100 | 1.0× |
+| Engineer | SMG + AT Mines | 85 | 1.05× |
+| Medic | LMG + Medkits | 110 | 0.9× |
+| Sniper | Sniper Rifle + C4 | 75 | 1.1× |
+
+Kits only change health and speed so far; every kit carries the rifle and RPG.
 
 ## Project Structure
 
 ```
 OpenDesertCombat/
-├── Godot_v4.4.1-stable_linux.x86_64       # Godot 4.4.1 Linux binary (gitignored)
+├── .github/workflows/ci.yml                # CI: headless import + all suites on Linux
 ├── godot/                                  # Godot project root
-│   ├── project.godot                       # Project config, inputs, JoltPhysics3D, physics layers
-│   ├── icon.svg                            # Project icon
-│   ├── assets/
-│   │   └── materials/
-│   │       └── desert_terrain.gdshader     # Procedural desert dune & tactical grid shader
+│   ├── project.godot                       # Project config, input map, JoltPhysics3D, physics layers
+│   ├── assets/materials/
+│   │   └── desert_terrain.gdshader         # Procedural desert dune & tactical grid shader
 │   ├── scenes/
-│   │   ├── game/
-│   │   │   └── capture_point.tscn          # Conquest capture zone + flagpole/banner
-│   │   ├── infantry/
-│   │   │   └── player.tscn                 # FPS player (CharacterBody3D + HealthComponent)
-│   │   ├── maps/
-│   │   │   └── test_desert.tscn            # Playable desert sandbox map
+│   │   ├── game/capture_point.tscn         # Flag zone + flagpole/banner (also main bases)
+│   │   ├── infantry/player.tscn            # FPS soldier (CharacterBody3D + HealthComponent)
+│   │   ├── maps/test_desert.tscn           # Test map: two bases, Alpha/Bravo, vehicle spawns
 │   │   ├── ui/
-│   │   │   ├── game_hud.tscn               # HUD (tickets, crosshair, vehicle telemetry)
-│   │   │   └── kit_select.tscn             # Full-screen kit picker shown on death
+│   │   │   ├── game_hud.tscn               # HUD: tickets, capture panel, banners, vehicle panel
+│   │   │   └── kit_select.tscn             # Deploy menu: team, kit, spawn point, respawn timer
 │   │   ├── vehicles/
-│   │   │   ├── helicopter.tscn             # AH-64-style gunship (RigidBody3D)
-│   │   │   ├── humvee.tscn                 # 4×4 HMMWV (VehicleBody3D)
-│   │   │   ├── jet.tscn                    # F-16-style fighter (RigidBody3D + gear)
-│   │   │   └── tank.tscn                   # M1A1-style MBT (RigidBody3D tracks)
+│   │   │   ├── helicopter.tscn             # Attack helicopter (RigidBody3D)
+│   │   │   ├── humvee.tscn                 # 4×4 utility vehicle (VehicleBody3D)
+│   │   │   ├── jet.tscn                    # Multirole fighter (RigidBody3D + gear)
+│   │   │   └── tank.tscn                   # Main battle tank (RigidBody3D)
 │   │   └── weapons/
-│   │       ├── cannon_shell.tscn           # Visual AP tracer round (tank cannon)
-│   │       └── rocket_projectile.tscn      # Hydra 70 / RPG-7 ballistic projectile
-│   └── scripts/
-│       ├── game/
-│       │   ├── capture_point.gd            # Zone capture state & flag color updates
-│       │   ├── conquest_manager.gd         # Team tickets, bleed & win condition
-│       │   ├── health_component.gd         # Reusable health/damage/die node
-│       │   └── vehicle_spawn_manager.gd    # 30 s vehicle wreck + respawn system
-│       ├── maps/
-│       │   └── test_desert.gd              # Map startup script
-│       ├── player/
-│       │   └── player_controller.gd        # FPS movement, vehicle interaction, weapons, respawn
-│       ├── ui/
-│       │   ├── game_hud.gd                 # HUD signals & vehicle telemetry display
-│       │   └── kit_select_menu.gd          # Kit picker logic & respawn countdown
-│       ├── vehicles/
-│       │   ├── helicopter_controller.gd    # 6-DOF flight physics + Hydra 70 pods
-│       │   ├── jet_controller.gd           # Lift/stall/drag model, fly-by-wire, cannon + bombs
-│       │   ├── humvee_controller.gd        # VehicleBody3D wheeled driving
-│       │   └── tank_controller.gd          # RigidBody3D tracks, turret/barrel, AP cannon
-│       └── weapons/
-│           ├── cannon_shell.gd             # Fast AP tracer round (visual only)
-│           └── rocket_projectile.gd        # Raycast-swept ballistic rocket + splash damage
-├── docs/
-│   ├── architecture.md                     # Engine choice, physics layers, scene hierarchy
-│   ├── gameplay_systems.md                 # Full system specs (vehicles, weapons, health, kits)
-│   ├── design_goals.md                     # Gameplay pillars, reference match, asset policy
-│   ├── roadmap.md                          # Sprint progress & milestones
-│   └── formats/
-│       └── refractor_formats.md            # Legacy Refractor 1 (.rfa/.sm) research notes
-└── tools/
-    └── odc-converter/                      # Companion C++20 BF1942 RFA/mesh CLI skeleton
+│   │       ├── cannon_shell.tscn           # Visual tank-cannon tracer
+│   │       └── rocket_projectile.tscn      # Rocket / RPG / bomb projectile
+│   ├── scripts/
+│   │   ├── game/
+│   │   │   ├── capture_point.gd            # Flag ownership, capture progress, banner
+│   │   │   ├── conquest_manager.gd         # Tickets: bleed, death cost, win condition
+│   │   │   ├── health_component.gd         # Health, damage, death (+ friendly-fire rule)
+│   │   │   ├── kits.gd                     # Kit definitions
+│   │   │   ├── match_manager.gd            # Participants, spawn rules, kill credit, score
+│   │   │   ├── participant.gd              # One soldier's match data
+│   │   │   ├── spawn_point.gd              # Infantry spawn owned by a flag
+│   │   │   ├── teams.gd                    # Team ids, names, colours, friendly fire
+│   │   │   └── vehicle_spawn.gd            # One vehicle per spot: flag ownership, wreck, abandon, respawn
+│   │   ├── maps/test_desert.gd             # Map startup script
+│   │   ├── player/player_controller.gd     # Movement, weapons, vehicles, death and respawn
+│   │   ├── ui/
+│   │   │   ├── game_hud.gd                 # HUD logic
+│   │   │   └── kit_select_menu.gd          # Deploy menu logic
+│   │   ├── vehicles/
+│   │   │   ├── helicopter_controller.gd    # 6-DOF flight model + rocket pods
+│   │   │   ├── humvee_controller.gd        # Wheeled driving
+│   │   │   ├── jet_controller.gd           # Lift/stall/drag model, fly-by-wire, cannon + bombs
+│   │   │   └── tank_controller.gd          # Tracks, turret/barrel, HE cannon
+│   │   └── weapons/
+│   │       ├── cannon_shell.gd             # Tracer (visual only)
+│   │       ├── explosion.gd                # Shared blast: direct hit, splash, push, flash
+│   │       └── rocket_projectile.gd        # Ray-swept rocket / bomb that detonates an Explosion
+│   └── tests/
+│       ├── run_all.sh                      # Import + every suite + summary table (used by CI)
+│       ├── test_base.gd                    # Shared base: checks, waits, map loading, test actors
+│       ├── teams_test.gd                   # Sprint 4.1 headless test
+│       ├── match_test.gd                   # Sprint 4.2 headless test
+│       ├── jet_flight_test.gd              # Jet flight-model test
+│       └── combat_test.gd                  # Weapons vs soldiers, tank HE, ticket bleed
+└── docs/
+    ├── design_goals.md                     # Pillars, reference match, gap analysis, asset policy
+    ├── architecture.md                     # Engine, physics layers, scene tree, game-state layer, testing
+    ├── gameplay_systems.md                 # Every system with its tuning numbers
+    └── roadmap.md                          # Sprints, community track, known issues
 ```
 
 ## Documentation
 
 | Doc | Contents |
 |---|---|
-| [Design Goals](docs/design_goals.md) | Gameplay pillars, reference match, gap analysis, original-assets policy |
-| [Architecture Overview](docs/architecture.md) | Engine rationale, physics layers, scene hierarchy, vehicle contract |
-| [Gameplay Systems Reference](docs/gameplay_systems.md) | Detailed specs for all systems (helicopters, tank, health, kits, conquest) |
-| [Development Roadmap](docs/roadmap.md) | Sprint tracker — what's done, what's next |
-| [Refractor Format Notes](docs/formats/refractor_formats.md) | BF1942 `.rfa` archive reverse-engineering notes |
+| [Design Goals](docs/design_goals.md) | Gameplay pillars, reference match, gap analysis, original-content policy |
+| [Architecture](docs/architecture.md) | Engine and platforms, physics layers, scene tree, game-state layer, vehicle contract, testing |
+| [Gameplay Systems](docs/gameplay_systems.md) | Teams, match & spawning, flags & tickets, deploy menu, HUD, damage, infantry, every vehicle |
+| [Roadmap](docs/roadmap.md) | Community track, sprint progress, known issues |
 
 ## Tech Stack
 
 | Component | Choice | Notes |
 |---|---|---|
-| **Engine** | Godot 4.4.1 (MIT) | |
-| **Physics** | Built-in `JoltPhysics3D` | 60 Hz, no GDExtension needed in 4.4+ |
-| **Renderer** | Vulkan Forward+ | MSAA 3D `2×` |
-| **Language** | GDScript (typed) | Warnings treated as errors |
-| **Target platform** | Linux `x86_64` native | |
+| Engine | Godot 4.4.1 (MIT) | Upgrade to 4.7.2 planned before Sprint 4.3 |
+| Physics | Built-in `JoltPhysics3D` | 60 ticks/s |
+| Renderer | Forward+ | Vulkan on Linux/Windows, Metal on macOS; MSAA 2× |
+| Language | GDScript | Typed; untyped declarations are errors |
+| Platforms | Linux `x86_64` first | Developed on macOS and Linux; macOS/Windows builds planned |
 
 ## License
 
 GPL-3.0 — game code and original assets.
-The Godot Engine itself is MIT-licensed. Jolt Physics is MIT-licensed.
+The Godot Engine and Jolt Physics are MIT-licensed.
