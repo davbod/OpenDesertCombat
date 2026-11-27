@@ -192,7 +192,7 @@ OpenDesertCombat/
 | Engine | Godot 4.4.1 (MIT) | Upgrade to 4.7.2 planned before Sprint 4.3 |
 | Physics | Built-in `JoltPhysics3D` | 60 ticks/s |
 | Renderer | Forward+ | Vulkan on Linux/Windows, Metal on macOS; MSAA 2× |
-| Language | GDScript | Typed by convention |
+| Language | GDScript | Typed; untyped declarations are errors |
 | Platforms | Linux `x86_64` first | Developed on macOS and Linux; macOS/Windows builds planned |
 
 ## License

@@ -11,7 +11,7 @@
 | Engine | Godot **4.4.1** | Upgrade to 4.7.2 next, before Sprint 4.3 (needed for Terrain3D 1.1) |
 | Physics | Built-in `JoltPhysics3D`, 60 ticks/s | — |
 | Renderer | Forward+ — Vulkan on Linux/Windows, Metal on macOS | — |
-| Language | Typed GDScript | — |
+| Language | Typed GDScript (untyped declarations are errors) | — |
 | Development | macOS and Linux | — |
 | CI | GitHub Actions on Linux: headless import + all test suites ([§8](#8-testing)) | Release builds on version tags (Community track) |
 | Release target | Linux `x86_64` first | macOS and Windows builds from CI (Community track) |
@@ -197,8 +197,14 @@ signals and damage sources.
 
 ## 7. Code Conventions
 
-- **Typed GDScript** for variables, parameters and return types — by convention. The
-  project does not raise GDScript warnings to errors yet (engine defaults).
+- **Typed GDScript** for variables, parameters, return types (lambdas too) and `for`
+  variables over untyped arrays: explicit types or `:=`. `godot/project.godot` raises
+  the `untyped_declaration` warning to an error, so an untyped declaration fails to compile
+  and the headless import and tests fail in CI. `unused_variable`, `shadowed_variable`,
+  `shadowed_variable_base_class`, `standalone_expression` and `unreachable_code` are errors
+  too; prefix an intentionally unused variable with `_`. The other warnings keep the engine
+  defaults; the `unsafe_*` family stays off, since the duck-typed vehicle contract would
+  trip it.
 - **`class_name` on every game script**, so scenes and scripts refer to classes by name.
 - **`@onready` for child node references** (`$Path`). Lookups of other scene nodes are done
   once in `_ready` with `get_tree().root.find_child("Name", true, false)`, so map layout can

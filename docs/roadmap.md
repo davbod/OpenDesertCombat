@@ -125,7 +125,8 @@ From the 2026-11-27 review; fixes the [Known issues](#known-issues) marked *Hard
 - [x] Ticket bleed grows with the flag lead (fractional accumulator instead of `ceil()`; `bleed_rate = 2.0`, so 1 ticket/s at full control on the test map), with a test (`tests/combat_test.gd`, 23 checks)
 - [x] CI: GitHub Actions runs the headless import and all test suites on every pull request and push to `master` (`.github/workflows/ci.yml`)
 - [x] Shared test helpers (`tests/test_base.gd`) and one runner script (`tests/run_all.sh`) instead of copy-pasted helpers in each suite
-- [ ] Repo hygiene: commit `*.import` files; raise key GDScript warnings (start with untyped declarations); tidy `test_desert.gd`; remove unused tank exports; delete merged branches and the old worktree
+- [x] Repo hygiene: commit `*.import` files; raise key GDScript warnings to errors (untyped declarations, plus unused and shadowed variables, standalone expressions and unreachable code); tidy `test_desert.gd`; remove unused tank exports
+- [ ] Repo hygiene: delete merged branches and the old worktree
 - [x] Pre-public clean-up from C0: remove the converter tool and Refractor notes; generic in-game vehicle and weapon names
 
 ### Engine upgrade: Godot 4.7.2 — before 4.3
@@ -191,14 +192,14 @@ italic note says which milestone fixes it.*
 - [ ] **`PlayerController` is soldier and local player in one** — body, weapons and health are mixed with camera, HUD and menu wiring (found with `find_child`). A second soldier (bot) would take over the local HUD and menu. *5.0*
 - [ ] **Damage is applied by whoever fires** (hitscan in the shooter's script, blasts in `Explosion.detonate()` called by the projectile or tank) — fine single-player, not authoritative for multiplayer. *Sprint 6*
 - [ ] `Teams.friendly_fire` is a static, global setting; it belongs in per-match settings. *4.3 match options*
-- [ ] Unused tank exports `linear_damping_ground` and `turret_turn_speed`. *Hardening*
+- [x] Unused tank exports `linear_damping_ground` and `turret_turn_speed`. *Removed in Hardening.*
 - [ ] The helicopter's second seat position is defined but unused. *When multi-seat vehicles arrive*
 
 ### Repo & tooling
 - [x] **No CI** — four headless suites (~100 s) only ran by hand; test helpers were copy-pasted between suites. *Fixed in Hardening: `test_base.gd`, `run_all.sh` and GitHub Actions CI.*
-- [ ] `.gitignore` excludes `*.import` files; Godot 4 expects them committed, which matters once real textures and models arrive. *Hardening*
-- [ ] GDScript warnings aren't raised to errors (the docs used to claim they were). *Hardening*
-- [ ] `test_desert.gd` has stale comments and hard-codes "v0.1.0"; the project version is still 0.1.0. *Hardening; v0.2.0 at Sprint 4 wrap-up*
+- [x] `.gitignore` excluded `*.import` files; Godot 4 expects them committed, which matters once real textures and models arrive. *Fixed in Hardening: committed.*
+- [x] GDScript warnings weren't raised to errors (the docs used to claim they were). *Fixed in Hardening: untyped declarations and a few other warnings are errors (see [Architecture §7](architecture.md#7-code-conventions)).*
+- [x] `test_desert.gd` had stale comments and hard-coded "v0.1.0". *Fixed in Hardening: it prints `application/config/version`. The version itself (0.1.0) goes to 0.2.0 at Sprint 4 wrap-up.*
 - [ ] Merged branches (`feat/fixed-wing-jet`, `docs/design-goals`, `worktree-design-goals`) and the old `.claude/worktrees/design-goals` worktree are still around. *Hardening*
 - [ ] Some internal identifiers still use real designations: `HumveeController`, `humvee.tscn`, the `Humvee` map nodes and `_fire_hydra_rocket`. Players never see them. *Rename later*
 
