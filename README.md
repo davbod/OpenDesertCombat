@@ -23,8 +23,8 @@ The binary is not committed.
 
 ```bash
 # Point GODOT at your Godot 4.4.1 binary, for example:
-GODOT=./Godot_v4.4.1-stable_linux.x86_64              # Linux (repo root, gitignored)
-GODOT=/Applications/Godot.app/Contents/MacOS/Godot    # macOS
+export GODOT=./Godot_v4.4.1-stable_linux.x86_64             # Linux (repo root, gitignored)
+export GODOT=/Applications/Godot.app/Contents/MacOS/Godot   # macOS
 
 "$GODOT" --path godot/                   # play
 "$GODOT" --editor --path godot/          # open in the editor
@@ -33,13 +33,20 @@ GODOT=/Applications/Godot.app/Contents/MacOS/Godot    # macOS
 
 ### Tests
 
-Headless test suites (exit code 0 = pass). They run in real time, about 80 s in total:
+Headless test suites, run in real time (about 80 s in total). The runner does the import,
+runs every suite, prints a pass/fail table and exits non-zero if anything failed. It works
+from any directory; [CI](.github/workflows/ci.yml) runs the same script on every pull
+request and push to `master`.
 
 ```bash
-for t in teams_test match_test jet_flight_test; do
-  "$GODOT" --headless --path godot/ --script res://tests/$t.gd || break
-done
+godot/tests/run_all.sh              # all suites
+godot/tests/run_all.sh match_test   # just one
 ```
+
+A single suite can also run directly (exit code 0 = pass):
+`"$GODOT" --headless --path godot/ --script res://tests/match_test.gd`. New suites are picked
+up automatically: name them `*_test.gd` and extend `res://tests/test_base.gd` (see
+[Architecture § Testing](docs/architecture.md#8-testing)).
 
 | Suite | Covers |
 |---|---|
@@ -108,6 +115,7 @@ Kits only change health and speed so far; every kit carries the rifle and RPG-7.
 
 ```
 OpenDesertCombat/
+├── .github/workflows/ci.yml                # CI: headless import + all suites on Linux
 ├── godot/                                  # Godot project root
 │   ├── project.godot                       # Project config, input map, JoltPhysics3D, physics layers
 │   ├── assets/materials/
@@ -152,6 +160,8 @@ OpenDesertCombat/
 │   │       ├── cannon_shell.gd             # Tracer (visual only)
 │   │       └── rocket_projectile.gd        # Ray-swept projectile + splash damage
 │   └── tests/
+│       ├── run_all.sh                      # Import + every suite + summary table (used by CI)
+│       ├── test_base.gd                    # Shared base: checks, waits, map loading, test actors
 │       ├── teams_test.gd                   # Sprint 4.1 headless test
 │       ├── match_test.gd                   # Sprint 4.2 headless test
 │       └── jet_flight_test.gd              # Jet flight-model test

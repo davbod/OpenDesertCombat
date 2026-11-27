@@ -1,14 +1,12 @@
 ## Headless test for Sprint 4.1 — teams, friendly fire, tickets, team respawn and flag capture.
-## Run from the repository root (after an --import pass):
+## Run with godot/tests/run_all.sh, or alone from the repository root (after an --import pass):
 ##   <godot> --headless --path godot/ --script res://tests/teams_test.gd
-## Exits non-zero if any check fails.
+## Exits non-zero if any check fails. Helpers live in test_base.gd.
 
-extends SceneTree
+extends "res://tests/test_base.gd"
 
-var failures: PackedStringArray = []
 var events: Array = []  # [point_name, team] from ConquestManager.point_captured
 
-var map: Node
 var player: PlayerController
 var conquest: ConquestManager
 var match_mgr: MatchManager
@@ -19,22 +17,18 @@ var hud: GameHUD
 var tank: Node3D
 
 
-func _initialize() -> void:
-	_run.call_deferred()
-
-
 func _run() -> void:
-	map = (load("res://scenes/maps/test_desert.tscn") as PackedScene).instantiate()
-	root.add_child(map)
-	current_scene = map
-	player = map.find_child("Player", true, false) as PlayerController
-	conquest = map.find_child("ConquestManager", true, false) as ConquestManager
-	match_mgr = map.find_child("MatchManager", true, false) as MatchManager
-	alpha = map.find_child("CapturePointAlpha", true, false) as CapturePoint
-	bravo = map.find_child("CapturePointBravo", true, false) as CapturePoint
-	kit_menu = map.find_child("KitSelectMenu", true, false) as KitSelectMenu
-	hud = map.find_child("GameHUD", true, false) as GameHUD
-	tank = map.find_child("Tank", true, false) as Node3D
+	if not _load_map(TEST_DESERT):
+		_finish()
+		return
+	player = _find("Player") as PlayerController
+	conquest = _find("ConquestManager") as ConquestManager
+	match_mgr = _find("MatchManager") as MatchManager
+	alpha = _find("CapturePointAlpha") as CapturePoint
+	bravo = _find("CapturePointBravo") as CapturePoint
+	kit_menu = _find("KitSelectMenu") as KitSelectMenu
+	hud = _find("GameHUD") as GameHUD
+	tank = _find("Tank") as Node3D
 	if not (player and conquest and match_mgr and alpha and bravo and kit_menu and hud and tank):
 		_fail("test_desert.tscn is missing a required node")
 		_finish()
@@ -91,7 +85,7 @@ func _test_friendly_fire() -> void:
 func _test_vehicle_teams() -> void:
 	print("\n-- Vehicle teams")
 	for vname in ["Tank", "Humvee", "Helicopter", "Jet"]:
-		var v := map.find_child(vname, true, false) as Node3D
+		var v := _find(vname) as Node3D
 		if not v:
 			_fail("%s not found" % vname)
 			continue
@@ -126,11 +120,11 @@ func _test_death_and_team_respawn() -> void:
 
 	kit_menu.select_team(Teams.OPFOR)
 	kit_menu.select_kit(3)  # Sniper, 75 hp
-	var spawn := map.find_child("SpawnOPFOR", true, false) as SpawnPoint
+	var spawn := _find("SpawnOPFOR") as SpawnPoint
 	_check(kit_menu.selected_spawn == spawn, "deploy menu defaults to the OPFOR main base")
 	kit_menu._on_confirm_pressed()
 	await _ticks(30)
-	var flat := Vector2(player.global_position.x - spawn.global_position.x, player.global_position.z - spawn.global_position.z).length()
+	var flat := _flat_dist(player, spawn)
 	_check(player.is_alive(), "player respawned")
 	_check(player.team == Teams.OPFOR, "player switched to OPFOR")
 	_check(flat <= spawn.spread_radius + 0.5, "respawned at SpawnOPFOR (%.1f m away)" % flat)
@@ -140,14 +134,14 @@ func _test_death_and_team_respawn() -> void:
 
 func _test_capture_and_hold() -> void:
 	print("\n-- OPFOR soldier captures Alpha; it stays owned when empty; USMC bleeds")
-	_teleport_player(alpha.global_position + Vector3(0, 1.0, 0))
+	_teleport(player, alpha.global_position + Vector3(0, 1.0, 0))
 	await _ticks(60)
 	_check(hud.capture_panel.visible and hud.capture_label.text.begins_with("ALPHA"), "HUD shows capture progress (%s)" % hud.capture_label.text)
 	await _ticks(90)
 	_check(alpha.owning_team == Teams.OPFOR, "Alpha captured by OPFOR (progress %.2f)" % alpha.capture_progress)
 	_check(events.has(["Alpha", Teams.OPFOR]), "point_captured(Alpha, OPFOR) emitted")
 
-	_teleport_player(Vector3(0, 1.0, 150))
+	_teleport(player, Vector3(0, 1.0, 150))
 	var usmc_before: int = conquest.tickets[Teams.USMC]
 	var opfor_before: int = conquest.tickets[Teams.OPFOR]
 	await _ticks(300)
@@ -164,7 +158,7 @@ func _test_vehicle_capture_and_contest() -> void:
 	player.set_team(Teams.USMC)
 	player.participant.team = Teams.USMC
 	player._enter_vehicle(tank)
-	_teleport_body(tank, alpha.global_position + Vector3(0, 1.5, 0))
+	_teleport(tank, alpha.global_position + Vector3(0, 1.5, 0))
 	await _ticks(300)
 	var alpha_events: Array = events.filter(func(e: Array) -> bool: return e[0] == "Alpha")
 	_check(alpha_events.has(["Alpha", Teams.NONE]), "Alpha neutralised on the way")
@@ -188,72 +182,3 @@ func _test_game_over() -> void:
 	_check(winner == [Teams.USMC], "USMC wins when OPFOR hits 0 tickets")
 	_check(not conquest.game_active, "round is no longer active")
 	_check(hud.center_message.visible and hud.center_message.text == "USMC WINS", "HUD shows the winner")
-
-
-## --- Helpers ---
-
-## A bare Node3D with a team, standing in for an attacker.
-func _make_actor(team: int) -> Node3D:
-	var script := GDScript.new()
-	script.source_code = "extends Node3D\nvar team: int = 0\n"
-	script.reload()
-	var node := Node3D.new()
-	node.set_script(script)
-	node.set("team", team)
-	map.add_child(node)
-	return node
-
-
-## A kinematic body on the Vehicles layer that capture points count for `team`.
-func _make_contester(team: int, pos: Vector3) -> CharacterBody3D:
-	var script := GDScript.new()
-	script.source_code = "extends CharacterBody3D\nvar team: int = 0\nvar is_occupied: bool = true\nfunc enter_vehicle(_p: Node3D) -> int:\n\treturn 0\n"
-	script.reload()
-	var body := CharacterBody3D.new()
-	body.set_script(script)
-	body.set("team", team)
-	body.collision_layer = 4
-	body.collision_mask = 0
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = Vector3(2, 2, 2)
-	shape.shape = box
-	body.add_child(shape)
-	map.add_child(body)
-	body.global_position = pos
-	return body
-
-
-func _teleport_player(pos: Vector3) -> void:
-	player.global_position = pos
-	player.velocity = Vector3.ZERO
-
-
-func _teleport_body(body: Node3D, pos: Vector3) -> void:
-	body.global_position = pos
-	if body is RigidBody3D:
-		(body as RigidBody3D).linear_velocity = Vector3.ZERO
-		(body as RigidBody3D).angular_velocity = Vector3.ZERO
-
-
-func _ticks(n: int) -> void:
-	for i in range(n):
-		await physics_frame
-
-
-func _check(cond: bool, msg: String) -> void:
-	if cond:
-		print("  PASS  " + msg)
-	else:
-		print("  FAIL  " + msg)
-		failures.append(msg)
-
-
-func _fail(msg: String) -> void:
-	failures.append(msg)
-	print("  FAIL  " + msg)
-
-
-func _finish() -> void:
-	print("\n%d failure(s)" % failures.size())
-	quit(1 if failures.size() > 0 else 0)

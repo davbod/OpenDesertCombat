@@ -1,14 +1,11 @@
 ## Headless test for Sprint 4.2 — MatchManager registry, kill credit, spawn rules, flag spawns,
 ## the deploy menu, and VehicleSpawn wreck / abandon / flag-ownership behaviour.
-## Run from the repository root (after an --import pass):
+## Run with godot/tests/run_all.sh, or alone from the repository root (after an --import pass):
 ##   <godot> --headless --path godot/ --script res://tests/match_test.gd
-## Exits non-zero if any check fails.
+## Exits non-zero if any check fails. Helpers live in test_base.gd.
 
-extends SceneTree
+extends "res://tests/test_base.gd"
 
-var failures: PackedStringArray = []
-
-var map: Node
 var player: PlayerController
 var match_mgr: MatchManager
 var conquest: ConquestManager
@@ -23,14 +20,10 @@ var enemy_p: Participant
 var deaths_seen: Array = []  # [victim, killer] from participant_died
 
 
-func _initialize() -> void:
-	_run.call_deferred()
-
-
 func _run() -> void:
-	map = (load("res://scenes/maps/test_desert.tscn") as PackedScene).instantiate()
-	root.add_child(map)
-	current_scene = map
+	if not _load_map(TEST_DESERT):
+		_finish()
+		return
 	player = _find("Player") as PlayerController
 	match_mgr = _find("MatchManager") as MatchManager
 	conquest = _find("ConquestManager") as ConquestManager
@@ -232,80 +225,3 @@ func _test_abandoned_vehicle() -> void:
 	await _seconds(1.0)
 	_check(spawn.vehicle == humvee and is_instance_valid(humvee), "occupied Humvee far away is kept")
 	player._exit_vehicle()
-
-
-## --- Helpers ---
-
-func _find(node_name: String) -> Node:
-	return map.find_child(node_name, true, false)
-
-
-func _make_actor(team: int) -> Node3D:
-	var script := GDScript.new()
-	script.source_code = "extends Node3D\nvar team: int = 0\n"
-	script.reload()
-	var node := Node3D.new()
-	node.set_script(script)
-	node.set("team", team)
-	map.add_child(node)
-	return node
-
-
-## A kinematic body on the Vehicles layer that capture points count for `team`.
-func _make_contester(team: int, pos: Vector3) -> CharacterBody3D:
-	var script := GDScript.new()
-	script.source_code = "extends CharacterBody3D\nvar team: int = 0\nvar is_occupied: bool = true\nfunc enter_vehicle(_p: Node3D) -> int:\n\treturn 0\n"
-	script.reload()
-	var body := CharacterBody3D.new()
-	body.set_script(script)
-	body.set("team", team)
-	body.collision_layer = 4
-	body.collision_mask = 0
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = Vector3(2, 2, 2)
-	shape.shape = box
-	body.add_child(shape)
-	map.add_child(body)
-	body.global_position = pos
-	return body
-
-
-func _teleport(body: Node3D, pos: Vector3) -> void:
-	body.global_position = pos
-	if body is CharacterBody3D:
-		(body as CharacterBody3D).velocity = Vector3.ZERO
-	if body is RigidBody3D:
-		(body as RigidBody3D).linear_velocity = Vector3.ZERO
-		(body as RigidBody3D).angular_velocity = Vector3.ZERO
-
-
-func _flat_dist(a: Node3D, b: Node3D) -> float:
-	return Vector2(a.global_position.x - b.global_position.x, a.global_position.z - b.global_position.z).length()
-
-
-func _seconds(s: float) -> void:
-	await _ticks(ceili(s * Engine.physics_ticks_per_second))
-
-
-func _ticks(n: int) -> void:
-	for i in range(n):
-		await physics_frame
-
-
-func _check(cond: bool, msg: String) -> void:
-	if cond:
-		print("  PASS  " + msg)
-	else:
-		print("  FAIL  " + msg)
-		failures.append(msg)
-
-
-func _fail(msg: String) -> void:
-	failures.append(msg)
-	print("  FAIL  " + msg)
-
-
-func _finish() -> void:
-	print("\n%d failure(s)" % failures.size())
-	quit(1 if failures.size() > 0 else 0)

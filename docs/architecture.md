@@ -13,6 +13,7 @@
 | Renderer | Forward+ — Vulkan on Linux/Windows, Metal on macOS | — |
 | Language | Typed GDScript | — |
 | Development | macOS and Linux | — |
+| CI | GitHub Actions on Linux: headless import + all test suites ([§8](#8-testing)) | Release builds on version tags (Community track) |
 | Release target | Linux `x86_64` first | macOS and Windows builds from CI (Community track) |
 
 ### Why Godot + Jolt
@@ -222,26 +223,54 @@ signals and damage sources.
 
 ## 8. Testing
 
-Tests are headless Godot scripts in `godot/tests/` that extend `SceneTree`. Each one loads
-the real map, drives it from code (teleports, damage, menu calls), prints `PASS` / `FAIL`
-lines and exits with code 0 or 1.
+Tests are headless Godot scripts in `godot/tests/`. Each suite loads the real map, drives
+it from code (teleports, damage, menu calls), prints one `  PASS  ` or `  FAIL  ` line per
+check and a `N failure(s)` summary, and exits with code 0 or 1.
 
-| Test | Covers | Runtime |
-|---|---|---|
-| `teams_test.gd` | Friendly fire, vehicle teams, death → ticket, team respawn, capture, hold, bleed, contest, game over | ≈ 17 s |
-| `match_test.gd` | Participants, kill credit, spawn rules, flag spawns, deploy menu, lost flags, main bases, vehicle wreck/abandon/respawn | ≈ 17 s |
-| `jet_flight_test.gd` | Takeoff, climb, cruise, hard turn, stall, crash | ≈ 45 s |
+| Test | Covers | Checks | Runtime |
+|---|---|---|---|
+| `teams_test.gd` | Friendly fire, vehicle teams, death → ticket, team respawn, capture, hold, bleed, contest, game over | 43 | ≈ 17 s |
+| `match_test.gd` | Participants, kill credit, spawn rules, flag spawns, deploy menu, lost flags, main bases, vehicle wreck/abandon/respawn | 59 | ≈ 17 s |
+| `jet_flight_test.gd` | Takeoff, climb, cruise, hard turn, stall, crash | 15 | ≈ 45 s |
+
+Tests run in real time (physics at 60 Hz).
+
+**Shared base.** Every suite starts with `extends "res://tests/test_base.gd"` (a
+`SceneTree` script, deliberately without a `class_name`) and overrides `_run()`, which the
+base calls once the tree is up. The base holds the helpers:
+
+| Helper | Does |
+|---|---|
+| `_check(cond, msg)`, `_fail(msg)` | Print `PASS` / `FAIL` and record failures |
+| `_finish()` | Print the summary, release any pressed input actions, quit with 0 or 1 |
+| `_ticks(n)`, `_seconds(s)`, `_frames(n)` | Wait physics ticks, seconds of physics time, or process frames |
+| `_elapsed()` | Physics time waited so far (the jet test's telemetry clock) |
+| `_load_map(path)`, `_find(name)` | Instance a map as the current scene; find a node in it |
+| `_make_actor(team)` | A bare `Node3D` with a team, as an attacker |
+| `_make_contester(team, pos)` | A body on the Vehicles layer that capture points count for `team` |
+| `_teleport(body, pos)`, `_flat_dist(a, b)` | Move and stop a body; horizontal distance |
+
+**Runner.** `godot/tests/run_all.sh` (bash 3.2+, any working directory) needs `GODOT` set.
+It runs the headless import once, then every `*_test.gd` in alphabetical order (or only the
+suites named as arguments), and prints each suite's output and a table of passes, failures
+and seconds. A suite fails if it exits non-zero, prints a `SCRIPT ERROR` or `Parse Error`
+line, never prints its summary, or runs longer than `SUITE_TIMEOUT` (default 180 s). A
+runtime script error usually stops the suite's coroutine, so such a suite hangs until the
+timeout and is reported with both reasons. A script error during the import fails the run
+but the suites still run; any other import failure stops the run. The script exits 1 if
+anything failed and 2 on usage errors.
 
 ```bash
-cd godot
-"$GODOT" --headless --path . --import --quit          # once, after pulling
-for t in teams_test match_test jet_flight_test; do
-  "$GODOT" --headless --path . --script res://tests/$t.gd || exit 1
-done
+GODOT=/path/to/godot godot/tests/run_all.sh               # all suites
+GODOT=/path/to/godot godot/tests/run_all.sh match_test    # only the named ones
 ```
 
-Tests run in real time (physics at 60 Hz). There is no CI yet; the suites are fast
-enough to run on every pull request.
+**CI.** [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every pull
+request and every push to `master`. On `ubuntu-latest` it downloads the standard Godot
+Linux build (cached by version) and runs `run_all.sh`, with a 20 min job timeout. The
+Godot version is the single `GODOT_VERSION` variable at the top of the workflow, so an
+engine upgrade is a one-line change there. Results show in the job log (one folded group
+per suite), as annotations for failing checks, and on the run's summary page.
 
 **Visual checks:** for UI and look-and-feel, a scripted *windowed* run (same `SceneTree`
 pattern, without `--headless`) can save screenshots with

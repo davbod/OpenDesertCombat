@@ -1,26 +1,20 @@
 ## Headless flight-model smoke test for JetController.
-## Run from the repository root (after an --import pass):
-##   ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot/ --script res://tests/jet_flight_test.gd
+## Run with godot/tests/run_all.sh, or alone from the repository root (after an --import pass):
+##   <godot> --headless --path godot/ --script res://tests/jet_flight_test.gd
 ## Flies the jet through takeoff, climb, cruise, a hard turn and a stall attempt,
 ## prints telemetry, and exits non-zero if any phase misses its envelope.
+## Helpers live in test_base.gd.
 
-extends SceneTree
+extends "res://tests/test_base.gd"
 
 var jet: JetController
-var failures: PackedStringArray = []
-var t: float = 0.0
-const DT: float = 1.0 / 60.0
-
-
-func _initialize() -> void:
-	_run.call_deferred()
 
 
 func _run() -> void:
-	var map: Node = (load("res://scenes/maps/test_desert.tscn") as PackedScene).instantiate()
-	root.add_child(map)
-	current_scene = map
-	jet = map.find_child("Jet", true, false) as JetController
+	if not _load_map(TEST_DESERT):
+		_finish()
+		return
+	jet = _find("Jet") as JetController
 	if not jet:
 		_fail("Jet not found in test_desert.tscn")
 		_finish()
@@ -104,7 +98,7 @@ func _run() -> void:
 	_check(saw_stall, "pulling at idle with the limiter off should eventually stall")
 
 	# --- Crash: put the real Player in the seat and fly into the ground ---
-	var player := current_scene.find_child("Player", true, false) as PlayerController
+	var player := _find("Player") as PlayerController
 	jet.exit_vehicle(null)
 	jet.aoa_limiter = true
 	jet.global_position = Vector3(300.0, 40.0, -200.0)
@@ -137,32 +131,7 @@ func _heading_deg() -> float:
 	return rad_to_deg(atan2(v.x, -v.z))
 
 
-func _ticks(n: int) -> void:
-	for i in range(n):
-		await physics_frame
-		t += DT
-
-
 func _log(label: String) -> void:
 	print("[%5.1fs] %-22s alt=%6.0f m  ias=%5.0f m/s  aoa=%5.1f°  bank=%5.0f°  thr=%3d%%  stalled=%s  hp=%.0f" % [
-		t, label, jet.altitude_agl, jet.airspeed, rad_to_deg(jet.angle_of_attack), _bank_deg(),
+		_elapsed(), label, jet.altitude_agl, jet.airspeed, rad_to_deg(jet.angle_of_attack), _bank_deg(),
 		int(jet.throttle * 100.0), jet.is_stalled, jet.health_component.current_health])
-
-
-func _check(cond: bool, msg: String) -> void:
-	if cond:
-		print("  PASS  " + msg)
-	else:
-		print("  FAIL  " + msg)
-		failures.append(msg)
-
-
-func _fail(msg: String) -> void:
-	failures.append(msg)
-	print("  FAIL  " + msg)
-
-
-func _finish() -> void:
-	print("\n%d failure(s)" % failures.size())
-	Input.action_release("move_forward")
-	quit(1 if failures.size() > 0 else 0)

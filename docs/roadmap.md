@@ -21,7 +21,7 @@
 
 ## Definition of Done (every milestone)
 
-- Code with a headless test; all suites green (on CI once it exists)
+- Code with a headless test; all suites green (`godot/tests/run_all.sh`, run by CI on every pull request)
 - Docs updated: README, [Gameplay Systems](gameplay_systems.md), [Architecture](architecture.md), this roadmap
 - Play-tested in a window against a short checklist: what changed, what to try, what felt off
 - A screenshot or clip saved for the next devlog
@@ -35,7 +35,7 @@ Every milestone should end with something people can watch, play or talk about.
 - [ ] Before an itch.io/Steam release: check the EU, UK and Swedish registers by hand on TMview (automated search couldn't reach them)
 - [ ] Remove `tools/odc-converter`, the root `CMakeLists.txt` and the Refractor format notes from this repo (move them to a separate repo if they're still wanted) — an extractor for *Battlefield 1942* archives contradicts the original-content policy — *in Hardening*
 - [ ] Generic or invented in-game names instead of real products ("M1A1 Abrams", "F-16 Fighting Falcon", "AH-64 Apache", "HMMWV", real weapon names) — vehicle makers have taken shooters to court over this before — *in Hardening*
-- [ ] CI: headless import + all test suites on every pull request — *in Hardening*
+- [x] CI: headless import + all test suites on every pull request (`.github/workflows/ci.yml`)
 - [ ] Repo storefront: description, topics, social preview image, README hero GIF, "follow development" links
 - [ ] Contributor-ready: `CONTRIBUTING.md`, issue/PR templates, `good first issue` labels, GitHub Discussions
 
@@ -122,13 +122,13 @@ kit or spawn and the match manager decides. Bots (Sprint 5) and network peers
 From the 2026-11-27 review; fixes the [Known issues](#known-issues) marked *Hardening*.
 - [ ] Combat fixes: rifle and rocket/bomb flight rays hit soldiers (World + Players + Vehicles, excluding the shooter); tank shells get HE splash so armour can hurt infantry
 - [ ] Ticket bleed grows with the flag lead (fractional accumulator instead of `ceil()`), with a test
-- [ ] CI: GitHub Actions runs the headless import and all test suites on every pull request
-- [ ] Shared test helpers and one runner script instead of copy-pasted helpers in each suite
+- [x] CI: GitHub Actions runs the headless import and all test suites on every pull request and push to `master` (`.github/workflows/ci.yml`)
+- [x] Shared test helpers (`tests/test_base.gd`) and one runner script (`tests/run_all.sh`) instead of copy-pasted helpers in each suite
 - [ ] Repo hygiene: commit `*.import` files; raise key GDScript warnings (start with untyped declarations); tidy `test_desert.gd`; remove unused tank exports; delete merged branches and the old worktree
 - [ ] Pre-public clean-up from C0: remove the converter tool and Refractor notes; generic in-game vehicle and weapon names
 
 ### Engine upgrade: Godot 4.7.2 — before 4.3
-- [ ] Godot 4.4.1 → 4.7.2 in its own PR with CI green: re-check the jet envelope and vehicle handling under the newer Jolt; update the README and CI to the new binary. Needed for Terrain3D 1.1; cheapest while the codebase is small
+- [ ] Godot 4.4.1 → 4.7.2 in its own PR with CI green: re-check the jet envelope and vehicle handling under the newer Jolt; update the README and CI to the new binary (CI: the `GODOT_VERSION` line in `ci.yml`). Needed for Terrain3D 1.1; cheapest while the codebase is small
 
 ### 4.3 Menus
 - [ ] Main menu: Play (map select) / Settings / Quit, plus community links (Discord, GitHub, devlog) — game no longer boots straight into the test map
@@ -194,7 +194,7 @@ italic note says which milestone fixes it.*
 - [ ] The helicopter's second seat position is defined but unused. *When multi-seat vehicles arrive*
 
 ### Repo & tooling
-- [ ] **No CI** — three headless suites (~80 s) only run by hand; test helpers are copy-pasted between suites. *Hardening*
+- [x] **No CI** — three headless suites (~80 s) only ran by hand; test helpers were copy-pasted between suites. *Fixed in Hardening: `test_base.gd`, `run_all.sh` and GitHub Actions CI.*
 - [ ] `.gitignore` excludes `*.import` files; Godot 4 expects them committed, which matters once real textures and models arrive. *Hardening*
 - [ ] GDScript warnings aren't raised to errors (the docs used to claim they were). *Hardening*
 - [ ] `test_desert.gd` has stale comments and hard-codes "v0.1.0"; the project version is still 0.1.0. *Hardening; v0.2.0 at Sprint 4 wrap-up*
