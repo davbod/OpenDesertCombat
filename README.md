@@ -33,7 +33,7 @@ export GODOT=/Applications/Godot.app/Contents/MacOS/Godot   # macOS
 
 ### Tests
 
-Headless test suites, run in real time (about 80 s in total). The runner does the import,
+Headless test suites, run in real time (about 100 s in total). The runner does the import,
 runs every suite, prints a pass/fail table and exits non-zero if anything failed. It works
 from any directory; [CI](.github/workflows/ci.yml) runs the same script on every pull
 request and push to `master`.
@@ -53,6 +53,7 @@ up automatically: name them `*_test.gd` and extend `res://tests/test_base.gd` (s
 | `teams_test.gd` | Friendly fire, vehicle teams, tickets, team respawn, flag capture / hold / contest, game over |
 | `match_test.gd` | Participants, kill credit, spawn rules, flag spawns, deploy menu, main bases, vehicle wreck / abandon / respawn |
 | `jet_flight_test.gd` | Jet takeoff, climb, cruise, hard turn, stall, crash |
+| `combat_test.gd` | Rifle and RPG against soldiers, friendly fire, tank HE direct hit and splash, bomb direct hit, ticket bleed rate |
 
 ## Controls
 
@@ -96,8 +97,9 @@ up automatically: name them `*_test.gd` and extend `res://tests/test_base.gd` (s
   soldiers; equal numbers contest it.
 - **Main bases** (bigger flag with a ring) can't be captured — they're each team's
   guaranteed spawn.
-- **Tickets:** the team holding fewer flags bleeds tickets, and every death costs a ticket.
-  First to 0 loses.
+- **Tickets:** the team holding fewer flags bleeds tickets, faster the bigger the lead, and
+  every death costs a ticket. First to 0 loses. On the test map, holding both middle flags
+  drains the enemy's 300 tickets in about 5 minutes; a one-flag lead takes about 10.
 - **Respawn:** after a 10 s timer, pick a team, a kit and a spawn point — your main base or
   any flag your team holds. Capturing a flag also gives your team the vehicles parked there.
 - Friendly fire is off.
@@ -155,16 +157,18 @@ OpenDesertCombat/
 │   │   │   ├── helicopter_controller.gd    # 6-DOF flight model + rocket pods
 │   │   │   ├── humvee_controller.gd        # Wheeled driving
 │   │   │   ├── jet_controller.gd           # Lift/stall/drag model, fly-by-wire, cannon + bombs
-│   │   │   └── tank_controller.gd          # Tracks, turret/barrel, cannon
+│   │   │   └── tank_controller.gd          # Tracks, turret/barrel, HE cannon
 │   │   └── weapons/
 │   │       ├── cannon_shell.gd             # Tracer (visual only)
-│   │       └── rocket_projectile.gd        # Ray-swept projectile + splash damage
+│   │       ├── explosion.gd                # Shared blast: direct hit, splash, push, flash
+│   │       └── rocket_projectile.gd        # Ray-swept rocket / bomb that detonates an Explosion
 │   └── tests/
 │       ├── run_all.sh                      # Import + every suite + summary table (used by CI)
 │       ├── test_base.gd                    # Shared base: checks, waits, map loading, test actors
 │       ├── teams_test.gd                   # Sprint 4.1 headless test
 │       ├── match_test.gd                   # Sprint 4.2 headless test
-│       └── jet_flight_test.gd              # Jet flight-model test
+│       ├── jet_flight_test.gd              # Jet flight-model test
+│       └── combat_test.gd                  # Weapons vs soldiers, tank HE, ticket bleed
 ├── docs/
 │   ├── design_goals.md                     # Pillars, reference match, gap analysis, asset policy
 │   ├── architecture.md                     # Engine, physics layers, scene tree, game-state layer, testing

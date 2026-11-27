@@ -59,14 +59,15 @@ tension. It is a gameplay target, not a blueprint.
 
 ## Gap Analysis vs. Reference
 
-*Updated 2026-11-27, end of Sprint 4.2.*
+*Updated 2026-11-27, end of Sprint 4.2; counter-loop and ticket bleed after the Hardening
+combat fixes.*
 
 | Pillar | Already built | Missing |
 |---|---|---|
 | Combined arms | Infantry, Humvee, attack helicopter, jet, tank; 4 kits | Kit weapons and gadgets (all kits carry the same rifle + RPG; only health and speed differ), AA vehicle/emplacement, transport helicopter, multi-seat vehicles, AT mines/C4 |
 | Air superiority | Helicopter + rockets; jet (lift/stall model, cannon, bombs, runway takeoff) | AA counter, OPFOR airframes, landing/rearm on the runway |
 | Big desert maps | 8 × 8 km flat test map with two main bases 400 m apart and two flags | Heightmap terrain, an original large map, map overview / minimap, out-of-bounds |
-| Conquest tension | Red vs blue teams; flags that neutralise then capture; uncapturable main bases; spawning at held flags; vehicles that belong to flags; ticket bleed and death cost; respawn timer; per-player score | Opponents (bots, multiplayer), scoreboard, end-of-round screen, bleed that grows with the flag lead (it is a flat 1 ticket/s today) |
+| Conquest tension | Red vs blue teams; flags that neutralise then capture; uncapturable main bases; spawning at held flags; vehicles that belong to flags; ticket bleed that grows with the flag lead, and death cost; respawn timer; per-player score | Opponents (bots, multiplayer), scoreboard, end-of-round screen, bleed tuned on a full-size map |
 | Readable combat | Team-coloured flags and uniforms, capture HUD, tracers, explosion flashes | Particles, audio, soldier and vehicle models with clear silhouettes, IFF markers, minimap |
 
 **Counter-loop status** (pillar 1):
@@ -75,9 +76,9 @@ tension. It is a gameplay target, not a blueprint.
 |---|---|
 | AA beats air | ❌ No AA yet |
 | Air beats armour | ✅ Helicopter rockets, jet bombs |
-| Armour beats infantry | ❌ The tank cannon can't hit soldiers and has no splash |
+| Armour beats infantry | ✅ Tank HE shell: a direct hit or a shell within ≈ 2 m kills a soldier |
 | Infantry beats armour | ✅ RPG-7 (AT mines / C4 not yet) |
-| Infantry vs infantry | ❌ The rifle's ray can't hit soldiers |
+| Infantry vs infantry | ✅ Rifle (4 hits kill) and RPG-7 |
 
 ## Asset Sourcing
 

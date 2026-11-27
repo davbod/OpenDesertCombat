@@ -148,7 +148,7 @@ func _test_capture_and_hold() -> void:
 	_check(not hud.capture_panel.visible, "HUD capture panel hides after leaving the zone")
 	_check(alpha.owning_team == Teams.OPFOR and is_equal_approx(alpha.capture_progress, -1.0), "Alpha stays OPFOR with nobody near (progress %.2f)" % alpha.capture_progress)
 	var bled: int = usmc_before - conquest.tickets[Teams.USMC]
-	_check(bled >= 3, "USMC bleeds while OPFOR holds the majority (-%d in 5 s)" % bled)
+	_check(bled >= 2, "USMC bleeds while OPFOR holds the majority (-%d in 5 s at 0.5 ticket/s)" % bled)
 	_check(conquest.tickets[Teams.OPFOR] == opfor_before, "OPFOR does not bleed")
 
 
