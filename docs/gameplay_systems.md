@@ -41,15 +41,16 @@ Team ids are plain `int`s so they serialise cleanly for bots and network peers l
 | `name_of(team)`, `color_of(team)`, `ui_color_of(team)` | Display name, world colour (flags, uniforms), lighter text colour for UI |
 | `enemy_of(team)` | `USMC ↔ OPFOR`, `NONE → NONE` |
 | `of(node)` | Team of any actor with a `team: int` property; `NONE` for null, freed or teamless nodes |
-| `is_friendly_fire(attacker, victim)` | True when both are on the same non-neutral team and are different actors |
+| `is_friendly_fire(attacker, victim)` | True when both are on the same non-neutral team and are different actors. A vehicle counts as its occupant, so a hit on the vehicle you're in is self-damage |
 
 **Who has a team:** `PlayerController.team` (exported, default USMC, chosen on the deploy
 menu). Every vehicle's `team` is its crew's team while occupied and `NONE` when empty.
 
 **Friendly fire:** `HealthComponent.take_damage()` ignores hits where
 `Teams.is_friendly_fire(attacker, get_parent())` is true. `Teams.friendly_fire` (static,
-default `false`) turns it on. Self-damage and damage with no attacker (crashes) always
-apply. Empty vehicles are neutral, so anyone can damage them.
+default `false`) turns it on. Self-damage (including your own rockets, bombs or shells
+hitting the vehicle you're in) and damage with no attacker (crashes) always apply. Empty
+vehicles are neutral, so anyone can damage them.
 
 ---
 
@@ -254,8 +255,11 @@ Signals: `damaged(amount, attacker)`, `healed(amount)`, `died(attacker)`,
   with several collision shapes is hit once.
 - `RigidBody3D`s in the radius are pushed away and slightly up with the same falloff:
   rockets 12,000, tank shells 15,000, bombs 60,000 N·s.
-- All damage goes through `HealthComponent.take_damage()` with the shooter as attacker (the
-  tank's occupant for its shells), so friendly fire stays off and the shooter gets the kill.
+- All damage goes through `HealthComponent.take_damage()` with the shooter as attacker, so
+  friendly fire stays off and the shooter gets the kill. For vehicle weapons the attacker is
+  the occupant: the tank passes its occupant when it fires, and a rocket or bomb takes its
+  vehicle's occupant at launch. A pilot who bails out, or whose vehicle is destroyed, before
+  the rocket or bomb lands still gets the kill, and teammates are still spared.
 - Nothing blocks splash yet: there is no line-of-sight check through walls.
 
 ---
@@ -349,7 +353,8 @@ Scene: [`helicopter.tscn`](../godot/scenes/vehicles/helicopter.tscn)
   `−angular_velocity × 1.4 × mass`; gentle auto-level (4,500) when the cyclic is centred and
   tilt exceeds 0.08 rad.
 - **Weapons:** `LMB` fires unguided rockets (`RocketProjectile`) alternately from the wing
-  pods at (±2.1, −0.25, −1.2) every 0.22 s, inheriting the helicopter's velocity.
+  pods at (±2.1, −0.25, −1.2) every 0.22 s, inheriting the helicopter's velocity. The pilot
+  is credited for each rocket (see [Explosions](#6-health--damage)).
 - **Seats & camera:** two seat positions are defined but only the pilot seat is used; chase
   camera at (0, 4, 13).
 

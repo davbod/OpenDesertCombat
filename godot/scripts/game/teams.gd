@@ -12,7 +12,8 @@ const OPFOR: int = 2  ## Red
 const PLAYABLE: Array[int] = [USMC, OPFOR]
 
 ## When false, damage between two members of the same team is ignored.
-## Self-damage and damage with no attacker (crashes, falls) always apply.
+## Self-damage (including to the vehicle you're in) and damage with no attacker (crashes,
+## falls) always apply.
 static var friendly_fire: bool = false
 
 
@@ -63,8 +64,11 @@ static func of(node: Object) -> int:
 
 
 ## True when this hit should be ignored because both sides are on the same team.
+## A vehicle counts as its occupant, so your own rockets or bombs still hurt the vehicle you're in.
 static func is_friendly_fire(attacker: Object, victim: Object) -> bool:
 	if friendly_fire or attacker == null or victim == null or attacker == victim:
+		return false
+	if is_instance_valid(victim) and "occupant" in victim and victim.get("occupant") == attacker:
 		return false
 	var attacker_team := of(attacker)
 	return attacker_team != NONE and attacker_team == of(victim)

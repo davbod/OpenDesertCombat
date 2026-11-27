@@ -53,7 +53,7 @@ up automatically: name them `*_test.gd` and extend `res://tests/test_base.gd` (s
 | `teams_test.gd` | Friendly fire, vehicle teams, tickets, team respawn, flag capture / hold / contest, game over |
 | `match_test.gd` | Participants, kill credit, spawn rules, flag spawns, deploy menu, main bases, vehicle wreck / abandon / respawn |
 | `jet_flight_test.gd` | Jet takeoff, climb, cruise, hard turn, stall, crash |
-| `combat_test.gd` | Rifle and RPG against soldiers, friendly fire, tank HE direct hit and splash, bomb direct hit, ticket bleed rate |
+| `combat_test.gd` | Rifle and RPG against soldiers, friendly fire, tank HE direct hit and splash, helicopter rocket and bomb credit after the pilot bails out, splash on a multi-shape vehicle, bomb direct hit, ticket bleed rate |
 
 ## Controls
 

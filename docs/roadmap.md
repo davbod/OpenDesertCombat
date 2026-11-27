@@ -121,8 +121,8 @@ kit or spawn and the match manager decides. Bots (Sprint 5) and network peers
 
 ### Hardening — next, before 4.3
 From the 2026-11-27 review; fixes the [Known issues](#known-issues) marked *Hardening*.
-- [x] Combat fixes: rifle and rocket/bomb flight rays hit soldiers (World + Players + Vehicles, excluding the shooter); tank shells get HE splash so armour can hurt infantry; one shared `Explosion` for rockets, bombs and tank shells (direct hit counts once)
-- [x] Ticket bleed grows with the flag lead (fractional accumulator instead of `ceil()`; `bleed_rate = 2.0`, so 1 ticket/s at full control on the test map), with a test (`tests/combat_test.gd`, 23 checks)
+- [x] Combat fixes: rifle and rocket/bomb flight rays hit soldiers (World + Players + Vehicles, excluding the shooter); tank shells get HE splash so armour can hurt infantry; one shared `Explosion` for rockets, bombs and tank shells (direct hit counts once, a multi-shape vehicle takes splash once); rockets and bombs credit the occupant who fired them, fixed at launch, while your own fire still hurts the vehicle you're in
+- [x] Ticket bleed grows with the flag lead (fractional accumulator instead of `ceil()`; `bleed_rate = 2.0`, so 1 ticket/s at full control on the test map), with a test (`tests/combat_test.gd`, 33 checks)
 - [x] CI: GitHub Actions runs the headless import and all test suites on every pull request and push to `master` (`.github/workflows/ci.yml`)
 - [x] Shared test helpers (`tests/test_base.gd`) and one runner script (`tests/run_all.sh`) instead of copy-pasted helpers in each suite
 - [x] Repo hygiene: commit `*.import` files; raise key GDScript warnings to errors (untyped declarations, plus unused and shadowed variables, standalone expressions and unreachable code); tidy `test_desert.gd`; remove unused tank exports
@@ -184,6 +184,7 @@ italic note says which milestone fixes it.*
 - [x] **Rifle can't hit soldiers** — its ray mask was World + Vehicles (5); infantry are on Players (2). *Fixed in Hardening: mask 7.*
 - [x] **Tank can't hurt infantry** — the cannon ray ignored Players and the shell had no splash. *Fixed in Hardening: mask 7 and an HE `Explosion`.*
 - [x] **Rockets and bombs fly through soldiers** — the flight ray ignored Players; only the splash hurt them. *Fixed in Hardening: mask 7; the body hit takes full damage once.*
+- [x] **Rockets and bombs lose their pilot in flight** — they credited the helicopter or jet, whose team and occupant were looked up on impact. If the pilot bailed out (or the vehicle was destroyed) first, the blast hurt teammates with friendly fire off and nobody got the kill. *Fixed in Hardening: the occupant is the attacker, fixed at launch.*
 - [x] **Ticket bleed is flat** — `ceil(bleed_rate × difference / total)` was 1 ticket/s for *any* flag deficit. *Fixed in Hardening: fractional accumulator.*
 - [ ] **Kits are health and speed only** — every kit carries the same rifle + RPG; the listed weapons and gadgets aren't implemented. *5.1 kit loadouts*
 

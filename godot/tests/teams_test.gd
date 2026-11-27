@@ -103,6 +103,8 @@ func _test_vehicle_teams() -> void:
 	_check(is_equal_approx(thc.current_health, hp), "teammate can't damage a crewed friendly vehicle")
 	thc.take_damage(100.0, enemy)
 	_check(is_equal_approx(thc.current_health, hp - 100.0), "enemy damages a crewed vehicle")
+	thc.take_damage(50.0, player)
+	_check(is_equal_approx(thc.current_health, hp - 150.0), "the crew's own fire damages their vehicle (self-damage)")
 	player._exit_vehicle()
 	thc.reset()
 	friend.queue_free()

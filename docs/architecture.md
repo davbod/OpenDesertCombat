@@ -160,7 +160,7 @@ they extend different body types):
 | `exit_vehicle(player)` | `func → void` | ✅ | Clears `is_occupied`, `team`, `occupant` |
 | `is_occupied` | `bool` | ✅ | Vehicle logic only reads input while occupied |
 | `team` | `int` | ✅ | Crew's team while occupied, `Teams.NONE` when empty (capture counting, friendly fire) |
-| `occupant` | `Node3D` | ✅ | Driver/pilot while occupied; `MatchManager` credits kills made with the vehicle |
+| `occupant` | `Node3D` | ✅ | Driver/pilot while occupied; `MatchManager` credits kills made with the vehicle, rockets and bombs take it as their attacker at launch, and `Teams` counts its hits on this vehicle as self-damage |
 | `vehicle_name` | `String` | optional | HUD prompt and vehicle panel |
 | `seat_positions` | `Array[Vector3]` | optional | Local seat-camera positions |
 | `chase_camera_offset` | `Vector3` | optional | Third-person camera offset |
@@ -229,10 +229,10 @@ check and a `N failure(s)` summary, and exits with code 0 or 1.
 
 | Test | Covers | Checks | Runtime |
 |---|---|---|---|
-| `teams_test.gd` | Friendly fire, vehicle teams, death → ticket, team respawn, capture, hold, bleed, contest, game over | 43 | ≈ 17 s |
+| `teams_test.gd` | Friendly fire, vehicle teams, death → ticket, team respawn, capture, hold, bleed, contest, game over | 44 | ≈ 17 s |
 | `match_test.gd` | Participants, kill credit, spawn rules, flag spawns, deploy menu, lost flags, main bases, vehicle wreck/abandon/respawn | 59 | ≈ 17 s |
 | `jet_flight_test.gd` | Takeoff, climb, cruise, hard turn, stall, crash | 15 | ≈ 45 s |
-| `combat_test.gd` | Rifle and RPG against soldiers, friendly fire, tank HE direct hit and splash with kill credit, bomb direct hit, ticket bleed rate | 23 | ≈ 23 s |
+| `combat_test.gd` | Rifle and RPG against soldiers, friendly fire, tank HE direct hit and splash with kill credit, helicopter rocket and bomb credit after the pilot bails out, splash on a multi-shape vehicle, bomb direct hit, ticket bleed rate | 33 | ≈ 25 s |
 
 Tests run in real time (physics at 60 Hz).
 
