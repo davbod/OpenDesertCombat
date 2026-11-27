@@ -388,8 +388,6 @@ Scene: [`tank.tscn`](../godot/scenes/vehicles/tank.tscn)
 | `angular_damping_factor` | 4.5 | Resists tumbling from impulses |
 | Upright torque | 15 × mass | Keeps the hull upright |
 
-`linear_damping_ground` and `turret_turn_speed` are exported but not used yet.
-
 **Turret & barrel:** mouse X turns `TurretPivot` (`turret_mouse_sensitivity = 0.0018`);
 mouse Y elevates `BarrelPivot` within −5°…+15°. Both are plain `Node3D`s, not simulated.
 

@@ -18,11 +18,9 @@ var team: int = Teams.NONE  ## Crew's team while occupied, NONE when empty
 @export var turn_torque: float = 180000.0
 @export var brake_force: float = 95000.0
 @export var max_speed: float = 18.0        ## m/s (~65 km/h)
-@export var linear_damping_ground: float = 1.8
 @export var angular_damping_factor: float = 4.5
 
 ## --- Turret ---
-@export var turret_turn_speed: float = 1.4   ## rad/s
 @export var barrel_pitch_min: float = -5.0   ## degrees, below horizontal
 @export var barrel_pitch_max: float = 15.0   ## degrees, above horizontal
 @export var turret_mouse_sensitivity: float = 0.0018
