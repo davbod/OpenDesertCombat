@@ -65,9 +65,14 @@ Scripts:
 - [capture_point.gd](file:///home/dmb/OpenDesertCombat/godot/scripts/game/capture_point.gd)
 - [game_hud.gd](file:///home/dmb/OpenDesertCombat/godot/scripts/ui/game_hud.gd)
 
-- **Capture Points**: `Area3D` zones track both `PlayerController` on foot and occupied vehicles. `capture_progress` shifts in `[-1.0, 1.0]` (`capture_time = 10.0 s` for 1 unit), updating `owning_team` (`NONE = 0`, `USMC = 1`, `OPFOR = 2`), emitting `captured`, and recoloring the flag banner (white / blue / red).
-- **Ticket Bleed**: `ConquestManager` starts both teams at `300` tickets. Every `1.0 s`, if one team holds more capture points, the losing team bleeds tickets proportional to `(majority_diff / total_points) * bleed_rate`. Reaching `0` tickets emits `game_over(winning_team)`.
-- **Game HUD**: Subscribes to `ConquestManager` signals for live ticket labels and `3 s` capture banners, shows the vehicle telemetry panel (`VehicleIndicator`, `ALT` in meters, `SPD` in km/h), and displays contextual `[E]` prompts.
+- **Capture Points**: `Area3D` zones (group `capture_points`) track players on foot and vehicles. Each physics tick they count living soldiers per team — a player counts for `PlayerController.team`, an occupied vehicle counts once for its crew's team, dead players and empty vehicles don't count.
+  - `capture_progress` runs from `-1.0` (fully OPFOR) to `+1.0` (fully USMC). The side with more soldiers moves it by `delta / capture_time × difference` (`capture_time = 10 s`, difference capped at `max_capture_multiplier = 4`).
+  - An enemy flag must be dragged back through `0` first: crossing `0` makes it neutral (`captured(name, Teams.NONE)`), reaching `±1` hands it over (`captured(name, team)`).
+  - Equal numbers from both teams = **contested**: progress holds. Nobody present: progress drifts back to the owner's full height (or to `0` if neutral) — **owned flags stay owned**.
+  - `initial_team` pre-owns a flag; `capturable = false` locks it (main bases).
+  - The banner rises and lowers with `|capture_progress|` and takes the owner's colour, or the raising team's colour on a neutral flag.
+- **Ticket Bleed**: `ConquestManager` starts both teams at `300` tickets. Every `1.0 s`, if one team holds more capture points, the losing team bleeds `ceil(bleed_rate × majority_diff / total_points)` tickets. Every death also costs the victim's team `kill_ticket_cost = 1` (`on_player_killed(team)`, called by `PlayerController` on death). Reaching `0` tickets emits `game_over(winning_team)` once.
+- **Game HUD**: Team-coloured ticket counters with `»` marking your own team; a capture panel (flag name, state — `CAPTURING`, `NEUTRALISING`, `SECURING`, `SECURED`, `CONTESTED`, `OUTNUMBERED`, `MAIN BASE` — and a progress bar in the leading team's colour) whenever you or your vehicle are in a zone; team-coloured `3 s` capture / neutralise banners and a persistent `<TEAM> WINS` banner; the vehicle telemetry panel (`VehicleIndicator`, `ALT` in meters, `SPD` in km/h) and contextual `[E]` prompts.
 
 
 ---
@@ -150,11 +155,13 @@ Scene: [kit_select.tscn](file:///home/dmb/OpenDesertCombat/godot/scenes/ui/kit_s
 | 3 | Sniper | M24 + C4 | 75 | 1.1× |
 
 **Flow:**
-1. `HealthComponent.died` fires → `PlayerController._on_player_died()` → `KitSelectMenu.show_menu()`
-2. Player picks kit and clicks **DEPLOY**
+1. `HealthComponent.died` fires → `PlayerController._on_player_died()` → `ConquestManager.on_player_killed(team)` (−1 ticket) → `KitSelectMenu.show_menu(team, kit)` with the current team and last kit preselected
+2. Player picks a team (**USMC** / **OPFOR**) and a kit, then clicks **DEPLOY**
 3. 5-second countdown (`spawn_countdown`)
-4. `kit_selected(kit_id)` signal → `PlayerController._on_kit_selected()` applies `max_health` from kit data, calls `HealthComponent.reset()`, teleports player to `SpawnUSMC`
+4. `deploy_confirmed(team, kit_id)` signal → `PlayerController._on_deploy_confirmed()` sets the team (and its uniform tint), applies `max_health` from kit data, calls `HealthComponent.reset()`, teleports the player to `Spawn<TEAM>` (`SpawnUSMC` / `SpawnOPFOR`)
 5. Mouse recaptured, `_is_dead = false`
+
+> [!NOTE] This is the interim deploy screen. Sprint 4.3 replaces it with team → kit → spawn point on a map overview.
 
 **Fallback:** If no `KitSelectMenu` node is found, `PlayerController` auto-respawns after 5 s.
 
@@ -203,3 +210,29 @@ Built on `RigidBody3D` (`mass = 12000 kg`, explicit `inertia = (60000, 80000, 20
 **Damage:** `HealthComponent` (250). Losing more than 22 m/s in a single tick counts as a crash (12 dmg per extra m/s + 40). On death the jet loses thrust and controls; any occupant is killed and ejected (`PlayerController._on_vehicle_destroyed`).
 
 **HUD:** `get_hud_status()` adds a status line to the vehicle panel: `THR %`, bombs, `LOW SPEED` (< 55 m/s) and `!! STALL !!`.
+
+---
+
+## 10. Teams (`Teams`)
+
+Script: `godot/scripts/game/teams.gd` · Test: `godot/tests/teams_test.gd`
+
+A static helper class (no node, no autoload) that is the single source of truth for teams. Team ids are plain `int`s so they serialise cleanly for bots and network peers later.
+
+| Id | Constant | Name | Colour |
+|---|---|---|---|
+| 0 | `Teams.NONE` | NEUTRAL | white |
+| 1 | `Teams.USMC` | USMC | blue |
+| 2 | `Teams.OPFOR` | OPFOR | red |
+
+| Function | Notes |
+|---|---|
+| `name_of(team)`, `color_of(team)`, `ui_color_of(team)` | Display name, world colour (flags, uniforms), lighter text colour for UI |
+| `enemy_of(team)` | `USMC ↔ OPFOR`, `NONE → NONE` |
+| `of(node)` | Team of any actor with a `team: int` property; `NONE` for null/freed/teamless nodes |
+| `is_friendly_fire(attacker, victim)` | True when both are on the same (non-neutral) team and they're different actors |
+
+**Who has a team:** `PlayerController.team` (exported, default USMC, changed on the deploy screen); every vehicle's `team` is its crew's team while occupied and `NONE` when empty.
+
+**Friendly fire:** `HealthComponent.take_damage()` ignores hits where `Teams.is_friendly_fire(attacker, get_parent())` is true. `Teams.friendly_fire` (static, default `false`) turns it on. Self-damage and damage with no attacker (crashes) always apply. Empty vehicles are neutral, so anyone can damage them.
+

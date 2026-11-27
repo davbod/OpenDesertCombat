@@ -13,6 +13,7 @@ class_name HumveeController
 @export var chase_camera_offset: Vector3 = Vector3(0.0, 2.8, 7.5)
 
 var is_occupied: bool = false
+var team: int = Teams.NONE  ## Crew's team while occupied, NONE when empty
 var current_steer: float = 0.0
 
 
@@ -46,12 +47,14 @@ func _physics_process(delta: float) -> void:
 		engine_force = throttle * max_engine_force
 
 
-func enter_vehicle(_player: Node3D) -> int:
+func enter_vehicle(player: Node3D) -> int:
 	is_occupied = true
+	team = Teams.of(player)
 	return 0
 
 
 func exit_vehicle(_player: Node3D) -> void:
 	is_occupied = false
+	team = Teams.NONE
 	engine_force = 0.0
 	brake = 15.0

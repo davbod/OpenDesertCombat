@@ -10,6 +10,7 @@ var vehicle_name: String = "M1A1 Abrams"
 var seat_positions: Array[Vector3] = [Vector3(0.0, 1.35, -0.4)]
 var chase_camera_offset: Vector3 = Vector3(0.0, 3.5, 9.0)
 var is_occupied: bool = false
+var team: int = Teams.NONE  ## Crew's team while occupied, NONE when empty
 
 ## --- Drive ---
 @export var drive_force: float = 220000.0
@@ -46,12 +47,14 @@ var _cannon_scene: PackedScene = preload("res://scenes/weapons/cannon_shell.tscn
 
 func enter_vehicle(player: Node3D) -> int:
 	is_occupied = true
+	team = Teams.of(player)
 	_occupant = player
 	return 0  # driver seat
 
 
 func exit_vehicle(_player: Node3D) -> void:
 	is_occupied = false
+	team = Teams.NONE
 	_occupant = null
 
 

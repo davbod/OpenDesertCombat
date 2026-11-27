@@ -68,6 +68,7 @@ class_name JetController
 @export var seat_positions: Array[Vector3] = [Vector3(0.0, 1.05, -3.2)]
 @export var chase_camera_offset: Vector3 = Vector3(0.0, 5.0, 20.0)
 @export var is_occupied: bool = false
+var team: int = Teams.NONE  ## Crew's team while occupied, NONE when empty
 
 ## --- State ---
 
@@ -395,12 +396,14 @@ func get_hud_status() -> String:
 
 func enter_vehicle(player: Node3D) -> int:
 	is_occupied = true
+	team = Teams.of(player)
 	_occupant = player
 	return 0
 
 
 func exit_vehicle(_player: Node3D) -> void:
 	is_occupied = false
+	team = Teams.NONE
 	_occupant = null
 	stick_pitch = 0.0
 	stick_roll = 0.0

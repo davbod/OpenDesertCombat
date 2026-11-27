@@ -1,5 +1,6 @@
 ## Conquest Game Mode Manager
 ## Manages capture points, team tickets, and win/loss conditions.
+## Team ids come from `Teams` (USMC = 1, OPFOR = 2).
 
 extends Node
 class_name ConquestManager
@@ -10,32 +11,24 @@ signal game_over(winning_team: int)
 
 ## --- Configuration ---
 @export var starting_tickets: int = 300
-@export var bleed_rate: float = 1.0  ## Tickets lost per second when enemy holds majority
-@export var kill_ticket_cost: int = 1  ## Tickets lost per kill
-
-## --- Teams ---
-enum Team { NONE = 0, USMC = 1, OPFOR = 2 }
+@export var bleed_rate: float = 1.0  ## Tickets lost per second when the enemy holds every flag
+@export var kill_ticket_cost: int = 1  ## Tickets a team loses each time one of its soldiers dies
 
 ## --- State ---
-var tickets: Dictionary = { Team.USMC: 300, Team.OPFOR: 300 }
+var tickets: Dictionary = { Teams.USMC: 300, Teams.OPFOR: 300 }
 var capture_points: Array[CapturePoint] = []
 var bleed_timer: float = 0.0
 var game_active: bool = true
 
 
 func _ready() -> void:
-	tickets[Team.USMC] = starting_tickets
-	tickets[Team.OPFOR] = starting_tickets
-	# Find all capture points in the scene
-	_find_capture_points(get_tree().root)
-
-
-func _find_capture_points(node: Node) -> void:
-	if node is CapturePoint:
-		capture_points.append(node)
-		node.captured.connect(_on_point_captured)
-	for child in node.get_children():
-		_find_capture_points(child)
+	tickets[Teams.USMC] = starting_tickets
+	tickets[Teams.OPFOR] = starting_tickets
+	for node in get_tree().get_nodes_in_group(CapturePoint.GROUP):
+		var point := node as CapturePoint
+		if point:
+			capture_points.append(point)
+			point.captured.connect(_on_point_captured)
 
 
 func _process(delta: float) -> void:
@@ -49,44 +42,50 @@ func _process(delta: float) -> void:
 		_check_game_over()
 
 
-func _apply_ticket_bleed() -> void:
-	var usmc_points = 0
-	var opfor_points = 0
+func count_points(team: int) -> int:
+	var n := 0
 	for point in capture_points:
-		if point.owning_team == Team.USMC:
-			usmc_points += 1
-		elif point.owning_team == Team.OPFOR:
-			opfor_points += 1
+		if point.owning_team == team:
+			n += 1
+	return n
 
-	var total = capture_points.size()
+
+func _apply_ticket_bleed() -> void:
+	var total := capture_points.size()
 	if total == 0:
 		return
+	var usmc_points := count_points(Teams.USMC)
+	var opfor_points := count_points(Teams.OPFOR)
 
-	# Team with fewer points bleeds tickets
+	# The team holding fewer flags bleeds, faster the bigger the gap
 	if usmc_points > opfor_points:
-		var bleed = ceili(bleed_rate * (float(usmc_points - opfor_points) / total))
-		tickets[Team.OPFOR] = maxi(0, tickets[Team.OPFOR] - bleed)
-		ticket_updated.emit(Team.OPFOR, tickets[Team.OPFOR])
+		_remove_tickets(Teams.OPFOR, ceili(bleed_rate * float(usmc_points - opfor_points) / total))
 	elif opfor_points > usmc_points:
-		var bleed = ceili(bleed_rate * (float(opfor_points - usmc_points) / total))
-		tickets[Team.USMC] = maxi(0, tickets[Team.USMC] - bleed)
-		ticket_updated.emit(Team.USMC, tickets[Team.USMC])
+		_remove_tickets(Teams.USMC, ceili(bleed_rate * float(opfor_points - usmc_points) / total))
 
 
+## Called whenever a soldier dies (any cause). Costs their team a ticket.
 func on_player_killed(victim_team: int) -> void:
-	if victim_team in tickets:
-		tickets[victim_team] = maxi(0, tickets[victim_team] - kill_ticket_cost)
-		ticket_updated.emit(victim_team, tickets[victim_team])
-		_check_game_over()
+	if not game_active or not tickets.has(victim_team):
+		return
+	_remove_tickets(victim_team, kill_ticket_cost)
+	_check_game_over()
+
+
+func _remove_tickets(team: int, amount: int) -> void:
+	tickets[team] = maxi(0, int(tickets[team]) - amount)
+	ticket_updated.emit(team, tickets[team])
 
 
 func _check_game_over() -> void:
-	if tickets[Team.USMC] <= 0:
+	if not game_active:
+		return
+	if tickets[Teams.USMC] <= 0:
 		game_active = false
-		game_over.emit(Team.OPFOR)
-	elif tickets[Team.OPFOR] <= 0:
+		game_over.emit(Teams.OPFOR)
+	elif tickets[Teams.OPFOR] <= 0:
 		game_active = false
-		game_over.emit(Team.USMC)
+		game_over.emit(Teams.USMC)
 
 
 func _on_point_captured(point_name: String, team: int) -> void:
