@@ -78,7 +78,7 @@ combat fixes.*
 | Air beats armour | ✅ Helicopter rockets, jet bombs |
 | Armour beats infantry | ✅ Tank HE shell: a direct hit or a shell within ≈ 2 m kills a soldier |
 | Infantry beats armour | ✅ RPG (AT mines / C4 not yet) |
-| Infantry vs infantry | ✅ Rifle (4 hits kill) and RPG |
+| Infantry vs infantry | ✅ Rifle (3–5 hits kill, by kit health; 4 for a 100 hp soldier) and RPG |
 
 ## Asset Sourcing
 

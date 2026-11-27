@@ -116,7 +116,7 @@ func _test_flag_gives_spawns_vehicles_and_score() -> void:
 	_check(match_mgr.get_spawn_points(Teams.USMC).has(spawn_alpha), "SpawnAlpha now available to USMC")
 	_check(p.score == score_before + MatchManager.SCORE_CAPTURE, "capturer scored %d (score %d)" % [MatchManager.SCORE_CAPTURE, p.score])
 	await _ticks(3)
-	_check(_find("AlphaHumvee") != null, "Alpha's Humvee spawns for the new owner")
+	_check(_find("AlphaHumvee") != null, "Alpha's utility vehicle spawns for the new owner")
 
 
 func _test_deploy_at_flag_through_menu() -> void:
@@ -141,7 +141,7 @@ func _test_deploy_at_flag_through_menu() -> void:
 
 func _test_lost_flag() -> void:
 	print("\n-- Losing Alpha removes the spawn but not the vehicle in the field")
-	var humvee := _find("AlphaHumvee")
+	var alpha_vehicle := _find("AlphaHumvee")
 	_teleport(player, Vector3(0, 1.0, 150))
 	# An OPFOR soldier (not a participant) takes the flag the normal way: neutralise, then capture
 	var attacker := _make_contester(Teams.OPFOR, alpha.global_position + Vector3(0, 1.0, 0))
@@ -151,7 +151,7 @@ func _test_lost_flag() -> void:
 	_check(alpha.owning_team == Teams.OPFOR, "Alpha now OPFOR (progress %.2f)" % alpha.capture_progress)
 	_check(not match_mgr.get_spawn_points(Teams.USMC).has(spawn_alpha), "USMC lost the Alpha spawn")
 	_check(match_mgr.get_spawn_points(Teams.OPFOR).has(spawn_alpha), "OPFOR gained the Alpha spawn")
-	_check(is_instance_valid(humvee) and _find("AlphaHumvee") == humvee, "Humvee already at Alpha is not taken away")
+	_check(is_instance_valid(alpha_vehicle) and _find("AlphaHumvee") == alpha_vehicle, "utility vehicle already at Alpha is not taken away")
 
 	player.health_component.take_damage(1000.0, enemy)
 	await _seconds(1.1)
@@ -215,13 +215,13 @@ func _test_abandoned_vehicle() -> void:
 	var old := spawn.vehicle
 	_teleport(old, spawn.global_position + Vector3(60, 0.5, 0))
 	await _seconds(0.8)
-	_check(removed == ["abandoned"] and not is_instance_valid(old), "empty Humvee 60 m away removed as abandoned")
+	_check(removed == ["abandoned"] and not is_instance_valid(old), "empty utility vehicle 60 m away removed as abandoned")
 	await _seconds(0.5)
-	_check(spawn.has_vehicle(), "Humvee respawned at its spawn")
+	_check(spawn.has_vehicle(), "utility vehicle respawned at its spawn")
 
-	var humvee := spawn.vehicle
-	player._enter_vehicle(humvee)
-	_teleport(humvee, spawn.global_position + Vector3(60, 0.5, 0))
+	var utility_vehicle := spawn.vehicle
+	player._enter_vehicle(utility_vehicle)
+	_teleport(utility_vehicle, spawn.global_position + Vector3(60, 0.5, 0))
 	await _seconds(1.0)
-	_check(spawn.vehicle == humvee and is_instance_valid(humvee), "occupied Humvee far away is kept")
+	_check(spawn.vehicle == utility_vehicle and is_instance_valid(utility_vehicle), "occupied utility vehicle far away is kept")
 	player._exit_vehicle()

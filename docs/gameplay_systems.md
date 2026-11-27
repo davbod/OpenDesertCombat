@@ -234,7 +234,7 @@ Signals: `damaged(amount, attacker)`, `healed(amount)`, `died(attacker)`,
 
 | Source | Damage | Delivery | Can hit |
 |---|---|---|---|
-| Rifle | 25 per shot, every 0.11 s | Hitscan 300 m, ray mask World + Players + Vehicles | Everything; 4 hits kill a 100 hp soldier |
+| Rifle | 25 per shot, every 0.11 s | Hitscan 300 m, ray mask World + Players + Vehicles | Everything; 4 hits kill a 100 hp soldier (3–5 by kit health) |
 | RPG | Direct hit: 120 to a vehicle / 80 to a soldier. Splash: the same × falloff over 8 m | `RocketProjectile`, 95 m/s, 2.5 m/s² drop, flight ray World + Players + Vehicles | Everything |
 | Helicopter rockets | as RPG | Alternate wing pods every 0.22 s | as RPG |
 | Tank cannon (HE) | Direct hit: 250. Splash: 150 to soldiers / 40 to vehicles × falloff over 6 m | Hitscan 1,800 m, ray mask World + Players + Vehicles, every 3.5 s | Everything; kills a soldier on a direct hit or within ≈ 2 m |

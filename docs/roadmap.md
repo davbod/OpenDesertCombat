@@ -1,8 +1,9 @@
 # OpenDesertCombat — Development Roadmap
 
 > Sprints are prioritised against the pillars in [Design Goals](design_goals.md).
-> *Last updated 2026-11-27 — Sprints 1–3, 4.1 and 4.2 done; Hardening is done except repo
-> hygiene. **Next:** finish Hardening, then the Godot 4.7.2 upgrade, then 4.3 (menus).*
+> *Last updated 2026-11-27 — Sprints 1–3, 4.1 and 4.2 done; Hardening is done except deleting
+> the merged branches and the old worktree. **Next:** finish Hardening, then the Godot 4.7.2
+> upgrade, then 4.3 (menus).*
 > Known problems are tracked under [Known issues](#known-issues), each with the milestone
 > that fixes it.
 >
@@ -202,7 +203,7 @@ italic note says which milestone fixes it.*
 - [x] GDScript warnings weren't raised to errors (the docs used to claim they were). *Fixed in Hardening: untyped declarations and a few other warnings are errors (see [Architecture §7](architecture.md#7-code-conventions)).*
 - [x] `test_desert.gd` had stale comments and hard-coded "v0.1.0". *Fixed in Hardening: it prints `application/config/version`. The version itself (0.1.0) goes to 0.2.0 at Sprint 4 wrap-up.*
 - [ ] Merged branches (`feat/fixed-wing-jet`, `docs/design-goals`, `worktree-design-goals`) and the old `.claude/worktrees/design-goals` worktree are still around. *Hardening*
-- [ ] Some internal identifiers still use real designations: `HumveeController`, `humvee.tscn`, the `Humvee` map nodes and `_fire_hydra_rocket`. Players never see them. *Rename later*
+- [ ] Some internal identifiers still use real designations: `HumveeController`, `humvee.tscn`, the `Humvee` map nodes (test output prints these node names) and `_fire_hydra_rocket`. Players never see them. *Rename later*
 
 ### Before going public
 - [x] **`tools/odc-converter` and the Refractor format notes** — an extractor for *Battlefield 1942* archives contradicted the original-content policy. Removed, with the root `CMakeLists.txt` and the converter's `.gitignore` entries. *Done in Hardening*
