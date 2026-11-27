@@ -22,6 +22,9 @@ An open-source modern military combined-arms FPS inspired by *Battlefield 1942: 
 
 # Teams test (friendly fire, tickets, team respawn, flag capture/contest) — exits non-zero on failure:
 ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot/ --script res://tests/teams_test.gd
+
+# Match test (participants, kill credit, spawn rules, flag spawns, vehicle wreck/abandon/respawn):
+./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot/ --script res://tests/match_test.gd
 ```
 
 > [!IMPORTANT] The Godot binary (`Godot_v4.4.1-stable_linux.x86_64`) is **not** committed. Download it from [godotengine.org](https://godotengine.org/download) or [GitHub releases](https://github.com/godotengine/godot/releases/tag/4.4.1-stable) and place it in the repository root.
@@ -58,10 +61,11 @@ An open-source modern military combined-arms FPS inspired by *Battlefield 1942: 
 | | Wheel Brake (on runway) | `Space` |
 | | Toggle Chase / Cockpit Camera | `V` |
 | **System** | Toggle Mouse Capture | `Esc` |
+| | Respawn (die → deploy menu; temporary until the pause menu) | `K` |
 
 ## Teams & Kits (picked on the death screen)
 
-Pick **USMC** (blue) or **OPFOR** (red) and a kit, then **DEPLOY**. You respawn at your team's base. Friendly fire is off; every death costs your team a ticket.
+Pick **USMC** (blue) or **OPFOR** (red), a kit and a **spawn point** — your main base or any flag your team holds — then **DEPLOY** (10 s respawn timer). Capturing a flag gives your team its spawn point and vehicles. Friendly fire is off; every death costs your team a ticket.
 
 | Kit | Weapon | Health | Speed |
 |---|---|---|---|
@@ -104,15 +108,19 @@ OpenDesertCombat/
 │       │   ├── capture_point.gd            # Zone capture state & flag color updates
 │       │   ├── conquest_manager.gd         # Team tickets, bleed & win condition
 │       │   ├── health_component.gd         # Reusable health/damage/die node (+ friendly-fire rule)
+│       │   ├── kits.gd                     # Kit definitions (health, speed, weapons)
+│       │   ├── match_manager.gd            # Participants, spawn rules, kill credit, score
+│       │   ├── participant.gd              # One soldier's match data
+│       │   ├── spawn_point.gd              # Infantry spawn owned by a base or flag
 │       │   ├── teams.gd                    # Team ids, names, colours, friendly fire
-│       │   └── vehicle_spawn_manager.gd    # 30 s vehicle wreck + respawn system
+│       │   └── vehicle_spawn.gd            # One vehicle per spot: flag ownership, wreck, abandon, respawn
 │       ├── maps/
 │       │   └── test_desert.gd              # Map startup script
 │       ├── player/
 │       │   └── player_controller.gd        # FPS movement, vehicle interaction, weapons, respawn
 │       ├── ui/
 │       │   ├── game_hud.gd                 # HUD signals & vehicle telemetry display
-│       │   └── kit_select_menu.gd          # Team + kit picker & respawn countdown
+│       │   └── kit_select_menu.gd          # Deploy menu: team, kit, spawn point, respawn timer
 │       ├── vehicles/
 │       │   ├── helicopter_controller.gd    # 6-DOF flight physics + Hydra 70 pods
 │       │   ├── jet_controller.gd           # Lift/stall/drag model, fly-by-wire, cannon + bombs

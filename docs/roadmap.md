@@ -47,7 +47,7 @@ Every milestone should end with something people can watch, play or talk about.
 - [x] `HumveeController` 4-wheel `VehicleBody3D`
 - [x] `RocketProjectile` ballistic sweep + splash impulse (Hydra 70 pods + RPG-7) and hitscan rifle
 - [x] `HealthComponent` reusable node — signals `damaged`, `healed`, `died`, `health_changed`; wired to Player, Helicopter, Humvee, Tank
-- [x] `VehicleSpawnManager` — registers vehicle + spawn point, auto-respawns after 30 s on death
+- [x] `VehicleSpawnManager` — registers vehicle + spawn point, auto-respawns after 30 s on death (replaced by `VehicleSpawn` nodes in 4.2)
 - [x] `TankController` — `RigidBody3D` tracks tank: drive/steer forces, anti-slip, turret yaw (mouse X), barrel pitch clamped −5°/+15°, AP cannon hitscan + `CannonShell` tracer
 - [x] `CannonShell` tracer scene and script
 - [x] `KitSelectMenu` (Assault / Engineer / Medic / Sniper) — kit picker with confirm countdown, applies kit health to `HealthComponent`
@@ -81,12 +81,16 @@ kit or spawn and the match manager decides. Bots (Sprint 5) and network peers
 - [x] Capture points support `initial_team` and `capturable = false` (main-base flags)
 - [x] Headless test (`tests/teams_test.gd`, 42 checks)
 
-### 4.2 Match & spawning
-- [ ] `MatchManager` with a participant registry (id, name, team, kit, score, kills/deaths)
-- [ ] `SpawnPoint` nodes owned by a base or a flag; capturing a flag gives you its spawns
-- [ ] Wire `VehicleSpawnManager` into the map; vehicle spawns tied to base/flag ownership
-- [ ] Abandoned-vehicle respawn (empty and away from its spawn for N seconds)
-- [ ] Respawn timer; kit speed applied (only health was)
+### 4.2 Match & spawning — ✅ Complete
+- [x] `MatchManager` with a participant registry (id, name, team, kit, score, kills/deaths); kill credit through vehicle occupants
+- [x] `SpawnPoint` nodes owned by a base or a flag; capturing a flag gives you its spawns; spawns spread out and snap to the ground
+- [x] Main bases are uncapturable flags, so bases and captured flags share one ownership model
+- [x] `VehicleSpawn` nodes (replacing the unused `VehicleSpawnManager`): one vehicle per spot, tied to base/flag ownership, wreck then respawn
+- [x] Abandoned-vehicle respawn (empty and away from its spawn for N seconds)
+- [x] Respawn timer with queued deploy; kit speed applied (only health was)
+- [x] Deploy menu lists only the spawn points your team holds and falls back to the base if a flag is lost
+- [x] Test map: OPFOR main base 400 m north with its own tank and Humvee; Humvee at Alpha for whoever holds it
+- [x] Headless test (`tests/match_test.gd`, 52 checks)
 
 ### 4.3 Menus
 - [ ] Main menu: Play (map select) / Settings / Quit, plus community links (Discord, GitHub, devlog) — game no longer boots straight into the test map

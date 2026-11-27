@@ -28,6 +28,8 @@ var rocket_scene: PackedScene = preload("res://scenes/weapons/rocket_projectile.
 ## --- Team & Kit ---
 @export_enum("Neutral", "USMC", "OPFOR") var team: int = Teams.USMC
 var active_kit_id: int = 0  # 0=Assault, 1=Engineer, 2=Medic, 3=Sniper
+var speed_multiplier: float = 1.0  ## From the kit
+var participant: Participant = null  ## This soldier's entry in the MatchManager registry
 var _is_dead: bool = false
 
 ## --- Nodes ---
@@ -39,7 +41,7 @@ var _is_dead: bool = false
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _kit_menu: KitSelectMenu = null
-var _conquest: ConquestManager = null
+var _match: MatchManager = null
 var _team_material: StandardMaterial3D = null
 
 
@@ -47,14 +49,16 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	hud = get_tree().root.find_child("GameHUD", true, false) as GameHUD
 	_kit_menu = get_tree().root.find_child("KitSelectMenu", true, false) as KitSelectMenu
-	_conquest = get_tree().root.find_child("ConquestManager", true, false) as ConquestManager
+	_match = get_tree().root.find_child("MatchManager", true, false) as MatchManager
+	if _match:
+		participant = _match.register(self, "Player", team, true)
 
 	if health_component:
 		health_component.died.connect(_on_player_died)
 		health_component.health_changed.connect(_on_health_changed)
 
 	if _kit_menu:
-		_kit_menu.deploy_confirmed.connect(_on_deploy_confirmed)
+		_kit_menu.deploy_requested.connect(_on_deploy_requested)
 
 	if hud:
 		hud.set_local_player(self)
@@ -89,8 +93,13 @@ func _apply_team_visuals() -> void:
 	_team_material.albedo_color = Color(0.68, 0.6, 0.44).lerp(Teams.color_of(team), 0.55)
 
 
-func _get_team_spawn() -> Node3D:
-	return get_tree().root.find_child("Spawn" + Teams.name_of(team), true, false) as Node3D
+## Without a MatchManager (e.g. a bare test scene): any spawn point our team holds.
+func _get_fallback_spawn() -> SpawnPoint:
+	for node in get_tree().get_nodes_in_group(SpawnPoint.GROUP):
+		var spawn := node as SpawnPoint
+		if spawn and spawn.get_team() == team:
+			return spawn
+	return null
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -127,6 +136,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			use_chase_camera = not use_chase_camera
 			_apply_vehicle_camera_offset()
 
+	# Dev shortcut until the 4.3 pause menu: K = respawn (die and open the deploy menu)
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_K:
+		if health_component:
+			health_component.take_damage(health_component.current_health, self)
+		return
+
 	# Weapon switch (1 = Rifle, 2 = RPG)
 	if not is_in_vehicle and event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_1:
@@ -161,6 +176,7 @@ func _physics_process(delta: float) -> void:
 		speed = sprint_speed
 	elif Input.is_action_pressed("crouch"):
 		speed = crouch_speed
+	speed *= speed_multiplier
 
 	# Input direction
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
@@ -308,7 +324,7 @@ func _exit_vehicle() -> void:
 	camera_pivot.rotation = Vector3.ZERO
 
 	# Place player safely beside vehicle
-	var side_offset: Vector3 = current_vehicle.transform.basis.x * 3.5
+	var side_offset: Vector3 = current_vehicle.global_transform.basis.x * 3.5
 	side_offset.y = 0.0
 	global_position = current_vehicle.global_position + side_offset + Vector3.UP * 1.5
 	velocity = Vector3.ZERO
@@ -345,47 +361,46 @@ func _on_player_died(_attacker: Node3D) -> void:
 		collision_shape.disabled = true
 	velocity = Vector3.ZERO
 
-	# Every death costs the team a ticket
-	if _conquest:
-		_conquest.on_player_killed(team)
-
-	# Show the deploy (team + kit) menu
-	if _kit_menu:
-		_kit_menu.show_menu(team, active_kit_id)
+	# MatchManager listens to the same signal: it records the death, tickets and score.
+	if _kit_menu and _match and participant:
+		_kit_menu.show_menu(_match, participant)
 	else:
-		# Fallback: auto-respawn in 5 seconds
+		# Fallback without a match: respawn at a spawn our team holds after 5 s
 		await get_tree().create_timer(5.0).timeout
-		_respawn()
+		var spawn := _get_fallback_spawn()
+		var xform := spawn.get_spawn_transform() if spawn else Transform3D(Basis(), Vector3(0.0, 2.0, 14.0))
+		spawn_at(xform, team, active_kit_id)
 
 
-func _on_deploy_confirmed(new_team: int, kit_id: int) -> void:
-	if not _is_dead:
+## Deploy menu → ask the match to spawn us. The match validates and calls spawn_at().
+func _on_deploy_requested(new_team: int, kit_id: int, spawn: SpawnPoint) -> void:
+	if not _is_dead or not _match or not participant:
 		return
+	var reason := _match.request_spawn(participant, new_team, kit_id, spawn)
+	if _kit_menu:
+		if reason.is_empty():
+			_kit_menu.close()
+		else:
+			_kit_menu.report_spawn_failed(reason)
+
+
+## Puts this soldier back in the world. Called by MatchManager once a spawn is approved.
+func spawn_at(xform: Transform3D, new_team: int, kit_id: int) -> void:
 	set_team(new_team)
 	active_kit_id = kit_id
-	if _kit_menu:
-		var kit_data: Dictionary = _kit_menu.get_kit_data(kit_id)
-		if health_component:
-			health_component.max_health = kit_data.get("health", 100.0) as float
-	_respawn()
-
-
-func _respawn() -> void:
-	_is_dead = false
+	var kit := Kits.get_kit(kit_id)
+	speed_multiplier = kit.get("speed", 1.0) as float
 	if health_component:
+		health_component.max_health = kit.get("health", 100.0) as float
 		health_component.reset()
+	_is_dead = false
 	visible = true
 	if collision_shape:
 		collision_shape.disabled = false
-
-	# Move to own team's spawn point
-	var spawn := _get_team_spawn()
-	if spawn:
-		global_position = spawn.global_position
-	else:
-		global_position = Vector3(0.0, 2.0, 14.0)
+	global_position = xform.origin
+	rotation = Vector3(0.0, xform.basis.get_euler().y, 0.0)
+	camera_pivot.rotation = Vector3.ZERO
 	velocity = Vector3.ZERO
-
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 

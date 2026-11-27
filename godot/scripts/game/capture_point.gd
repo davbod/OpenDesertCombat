@@ -18,6 +18,7 @@ const GROUP: StringName = &"capture_points"
 @export var capturable: bool = true  ## false for main-base flags that can never change hands
 @export var flag_mesh: MeshInstance3D  ## Flag banner mesh
 @export var flag_low_height: float = 1.5  ## Banner height (local) when fully lowered
+@export var base_banner_scale: float = 1.6  ## Main-base flags fly a bigger banner
 
 ## State
 var owning_team: int = Teams.NONE
@@ -27,22 +28,52 @@ var _bodies: Array[Node3D] = []
 var _flag_material: StandardMaterial3D
 var _flag_high_height: float = 9.0
 var _shown_team: int = -1
+var _initialised: bool = false
 
 
 func _enter_tree() -> void:
 	add_to_group(GROUP)
+	# Set the starting owner before any _ready runs, so base spawns see it on load
+	if not _initialised:
+		_initialised = true
+		owning_team = initial_team
+		capture_progress = _rest_progress(owning_team)
 
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
-	owning_team = initial_team
-	capture_progress = _rest_progress(owning_team)
 	if flag_mesh:
 		_flag_high_height = flag_mesh.position.y
 		_flag_material = StandardMaterial3D.new()
 		flag_mesh.material_override = _flag_material
+	if not capturable:
+		_apply_main_base_look()
 	_update_flag_visual()
+
+
+## Main bases read differently from capturable flags: a bigger banner and a team-coloured
+## ring around the pole.
+func _apply_main_base_look() -> void:
+	if flag_mesh:
+		var half_height := 0.9  # banner mesh is 1.8 m tall
+		flag_mesh.scale = Vector3(base_banner_scale, base_banner_scale, 1.0)
+		flag_mesh.position.x *= base_banner_scale  # keep the banner's edge on the pole
+		_flag_high_height -= half_height * (base_banner_scale - 1.0)  # keep its top below the pole tip
+	var ring := MeshInstance3D.new()
+	ring.name = "BaseRing"
+	var torus := TorusMesh.new()
+	torus.inner_radius = 3.0
+	torus.outer_radius = 3.6
+	ring.mesh = torus
+	ring.scale = Vector3(1.0, 0.35, 1.0)
+	var mat := StandardMaterial3D.new()
+	var color := Teams.color_of(owning_team)
+	mat.albedo_color = color
+	mat.emission_enabled = true
+	mat.emission = color * 0.35
+	ring.material_override = mat
+	add_child(ring)
 
 
 func _on_body_entered(body: Node3D) -> void:
@@ -88,6 +119,15 @@ func get_team_counts() -> Dictionary:
 
 func has_body(body: Node3D) -> bool:
 	return body != null and _bodies.has(body)
+
+
+## Players and vehicles currently inside the zone.
+func get_bodies() -> Array[Node3D]:
+	var result: Array[Node3D] = []
+	for body in _bodies:
+		if is_instance_valid(body):
+			result.append(body)
+	return result
 
 
 func _update_owner() -> void:

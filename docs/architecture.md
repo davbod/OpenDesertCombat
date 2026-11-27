@@ -45,21 +45,30 @@ Defined in `godot/project.godot`:
 TestDesertMap (Node3D — test_desert.gd)
 ├── WorldEnvironment          ProceduralSkyMaterial, ACES tonemap, SSAO, distance fog
 ├── Sun                       DirectionalLight3D with shadow cascades
-├── Ground                    StaticBody3D — 2000×2000 m, desert_terrain.gdshader
-├── Helipad                   StaticBody3D — 18×18 m landing pad
+├── Ground                    StaticBody3D — 8000×8000 m, desert_terrain.gdshader
+├── Helipad / Runway          StaticBody3D — 18×18 m pad, 900 m runway at x = 300
 ├── Bunker1 / Bunker2         StaticBody3D cover blocks (12×8×12 m)
 │
+├── ConquestManager           Node — tickets, bleed, win condition
+├── MatchManager              Node — participants, spawn rules, score
+│
+├── BaseUSMC                  ← capture_point.tscn (USMC, capturable = false, at -12, 0, 24)
+├── BaseOPFOR                 ← capture_point.tscn (OPFOR, capturable = false, at 12, 0, -404)
+├── CapturePointAlpha         ← capture_point.tscn (neutral, at -50, 0, -50)
+├── CapturePointBravo         ← capture_point.tscn (neutral, at 50, 0, 50)
+│
+├── SpawnUSMC / SpawnOPFOR    SpawnPoint → BaseUSMC / BaseOPFOR
+├── SpawnAlpha / SpawnBravo   SpawnPoint → CapturePointAlpha / CapturePointBravo
+│
 ├── Player                    ← player.tscn (CharacterBody3D + HealthComponent)
-├── Helicopter                ← helicopter.tscn (RigidBody3D + HealthComponent)
-├── Humvee                    ← humvee.tscn (VehicleBody3D + HealthComponent)
-├── Tank                      ← tank.tscn (RigidBody3D + HealthComponent)
 │
-├── SpawnUSMC                 Node3D — USMC team respawn point (0, 1.5, 20)
-├── SpawnOPFOR                Node3D — OPFOR team respawn point (0, 1.5, -80)
-│
-├── ConquestManager           Node — conquest_manager.gd
-├── CapturePointAlpha         ← capture_point.tscn (point_name="Alpha", at -50, 0, -50)
-├── CapturePointBravo         ← capture_point.tscn (point_name="Bravo", at 50, 0, 50)
+├── HelicopterSpawn           VehicleSpawn → BaseUSMC     spawns "Helicopter"
+├── HumveeSpawn               VehicleSpawn → BaseUSMC     spawns "Humvee"
+├── TankSpawn                 VehicleSpawn → BaseUSMC     spawns "Tank"
+├── JetSpawn                  VehicleSpawn → BaseUSMC     spawns "Jet" (runway threshold)
+├── OPFORTankSpawn            VehicleSpawn → BaseOPFOR    spawns "OPFORTank"
+├── OPFORHumveeSpawn          VehicleSpawn → BaseOPFOR    spawns "OPFORHumvee"
+├── AlphaHumveeSpawn          VehicleSpawn → Alpha        spawns "AlphaHumvee" once Alpha is held
 │
 ├── GameHUD                   ← game_hud.tscn (CanvasLayer)
 └── KitSelectMenu             ← kit_select.tscn (Control, hidden until player death)
@@ -80,6 +89,9 @@ All vehicles implement a lightweight **duck-typed contract** checked by `PlayerC
 | `chase_camera_offset` | `Vector3` | optional | 3rd-person camera offset |
 | `is_occupied` | `bool` | optional | Vehicle logic gates input on this |
 | `team` | `int` | ✅ | Crew's team (`Teams.of(player)`) set in `enter_vehicle`, `Teams.NONE` in `exit_vehicle`. Used for capture counting and friendly fire |
+| `occupant` | `Node3D` | ✅ | Driver/pilot while occupied, `null` when empty. `MatchManager` uses it to credit kills made with the vehicle |
+
+**Spawned vehicles are `top_level`.** `VehicleSpawn` adds the vehicle as its own child with `top_level = true`, so vehicle scripts that use `transform.basis` for forces keep working in world space whatever the marker's rotation.
 
 **Camera reparenting:** When entering a vehicle, `PlayerController`:
 1. Disables `PlayerCollision` and hides player mesh
@@ -100,7 +112,7 @@ All vehicles implement a lightweight **duck-typed contract** checked by `PlayerC
 | Actor | `max_health` | Death consequence |
 |---|---|---|
 | Player | 100 (kit-adjustable) | `KitSelectMenu` shown → respawn |
-| Helicopter | 300 | Occupants killed + ejected; wreck/respawn via `VehicleSpawnManager` in a future sprint |
+| Helicopter | 300 | Occupants killed + ejected; wreck stays 4 s, then its `VehicleSpawn` respawns it |
 | Jet | 250 | Loses thrust/controls; occupants killed + ejected; crash damage from impact speed |
 | Humvee | 200 | (same) |
 | Tank | 500 | (same) |
@@ -112,20 +124,25 @@ All vehicles implement a lightweight **duck-typed contract** checked by `PlayerC
 Teams live in `Teams` (`scripts/game/teams.gd`): `NONE = 0`, `USMC = 1` (blue), `OPFOR = 2` (red), plus `of(node)` and the friendly-fire rule that `HealthComponent` applies. Any actor with a `team: int` property takes part. See [gameplay_systems.md](gameplay_systems.md#10-teams-teams).
 
 
+**Server-authoritative in shape:** the player's side only *requests*; `MatchManager` validates and acts. Bots (Sprint 5) and network peers (Sprint 6) will use the same calls.
+
 ```
-Player killed
-    └─→ PlayerController._on_player_died()
+HealthComponent.died(attacker)
+    ├─→ MatchManager._on_actor_died()               (server)
+    │       ├─→ victim: alive = false, deaths += 1, death_time = now
+    │       ├─→ killer (participant_for(attacker), via vehicle occupant if needed): kills += 1, score += 10
+    │       └─→ ConquestManager.on_player_killed(victim.team)   (−1 ticket)
+    └─→ PlayerController._on_player_died()          (client)
             ├─→ hide player mesh, disable collision
-            ├─→ ConquestManager.on_player_killed(team)   (−1 ticket)
-            └─→ KitSelectMenu.show_menu(team, kit)
-                    └─→ [player selects team + kit, clicks DEPLOY]
-                            └─→ 5 s countdown
-                                    └─→ deploy_confirmed(team, kit_id) signal
-                                            └─→ PlayerController._on_deploy_confirmed()
-                                                    ├─→ set_team(team)  (uniform tint)
-                                                    ├─→ HealthComponent.max_health = kit.health
-                                                    ├─→ HealthComponent.reset()
-                                                    └─→ global_position = Spawn<TEAM>.global_position
+            └─→ KitSelectMenu.show_menu(match, participant)
+                    └─→ [team → kit → spawn point (only ones the team holds), DEPLOY]
+                            └─→ (queued until MatchManager.time_until_spawn() == 0)
+                                    └─→ deploy_requested(team, kit_id, spawn_point)
+                                            └─→ PlayerController → MatchManager.request_spawn()
+                                                    ├─→ rejected → menu shows the reason
+                                                    └─→ approved → PlayerController.spawn_at(transform, team, kit)
+                                                            ├─→ team tint, kit health + speed
+                                                            └─→ placed at SpawnPoint.get_spawn_transform()
 ```
 
 ---
@@ -135,5 +152,5 @@ Player killed
 - **Typed GDScript**: All variables, parameters, and return types are explicitly typed. `@warning_ignore` is used sparingly; Godot's warnings-as-errors policy is enforced.
 - **`class_name` on every script**: Required for Godot's global class registry so `.tscn` files can reference scripts by name without path strings.
 - **`@onready` for node refs**: Node references are declared as `@onready var foo: Type = $Path` and never cached in `_ready` manually.
-- **No static autoloads for game state**: Game state lives in scene nodes (`ConquestManager`, `VehicleSpawnManager`) rather than autoloaded singletons, to keep scenes self-contained and testable headlessly.
+- **No static autoloads for game state**: Game state lives in scene nodes (`ConquestManager`, `MatchManager`, `VehicleSpawn`) rather than autoloaded singletons, to keep scenes self-contained and testable headlessly.
 - **`find_child` for loose coupling**: Systems that need a sibling (e.g. `PlayerController` finding `GameHUD`) use `get_tree().root.find_child("Name", true, false)` rather than hard `$Path` references, so scene layout can change without breaking scripts.

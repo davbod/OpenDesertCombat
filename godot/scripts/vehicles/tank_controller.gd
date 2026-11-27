@@ -35,7 +35,7 @@ var team: int = Teams.NONE  ## Crew's team while occupied, NONE when empty
 var _fire_cooldown: float = 0.0
 var _turret_yaw: float = 0.0
 var _barrel_pitch: float = 0.0
-var _occupant: Node3D = null
+var occupant: Node3D = null  ## Driver/pilot while occupied
 var _cannon_scene: PackedScene = preload("res://scenes/weapons/cannon_shell.tscn")
 
 @onready var turret_pivot: Node3D = $TurretPivot
@@ -48,14 +48,14 @@ var _cannon_scene: PackedScene = preload("res://scenes/weapons/cannon_shell.tscn
 func enter_vehicle(player: Node3D) -> int:
 	is_occupied = true
 	team = Teams.of(player)
-	_occupant = player
+	occupant = player
 	return 0  # driver seat
 
 
 func exit_vehicle(_player: Node3D) -> void:
 	is_occupied = false
 	team = Teams.NONE
-	_occupant = null
+	occupant = null
 
 
 ## ---- Input -----------------------------------------------------------
@@ -149,7 +149,7 @@ func _fire_cannon() -> void:
 		if body is Node:
 			var hc: HealthComponent = (body as Node).find_child("HealthComponent", true, false) as HealthComponent
 			if hc:
-				hc.take_damage(cannon_damage, _occupant)
+				hc.take_damage(cannon_damage, occupant)
 
 	# Instantiate visual cannon shell tracer
 	var shell: Node3D = _cannon_scene.instantiate() as Node3D

@@ -38,6 +38,7 @@ class_name HelicopterController
 @export var chase_camera_offset: Vector3 = Vector3(0.0, 4.0, 13.0)
 @export var is_occupied: bool = false
 var team: int = Teams.NONE  ## Crew's team while occupied, NONE when empty
+var occupant: Node3D = null  ## Driver/pilot while occupied
 
 ## --- State ---
 
@@ -195,6 +196,7 @@ func _update_rotor(delta: float) -> void:
 func enter_vehicle(player: Node3D) -> int:
 	is_occupied = true
 	team = Teams.of(player)
+	occupant = player
 	engine_power = maxf(engine_power, idle_thrust_fraction)
 	return 0
 
@@ -202,6 +204,7 @@ func enter_vehicle(player: Node3D) -> int:
 func exit_vehicle(_player: Node3D) -> void:
 	is_occupied = false
 	team = Teams.NONE
+	occupant = null
 	collective_input = 0.0
 	cyclic_pitch = 0.0
 	cyclic_roll = 0.0

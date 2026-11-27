@@ -14,6 +14,7 @@ class_name HumveeController
 
 var is_occupied: bool = false
 var team: int = Teams.NONE  ## Crew's team while occupied, NONE when empty
+var occupant: Node3D = null  ## Driver/pilot while occupied
 var current_steer: float = 0.0
 
 
@@ -50,11 +51,13 @@ func _physics_process(delta: float) -> void:
 func enter_vehicle(player: Node3D) -> int:
 	is_occupied = true
 	team = Teams.of(player)
+	occupant = player
 	return 0
 
 
 func exit_vehicle(_player: Node3D) -> void:
 	is_occupied = false
 	team = Teams.NONE
+	occupant = null
 	engine_force = 0.0
 	brake = 15.0

@@ -109,8 +109,9 @@ func _update_capture_panel() -> void:
 	var own: int = counts.get(my_team, 0)
 	var enemy: int = counts.get(Teams.enemy_of(my_team), 0)
 	var state := "CAPTURING"
+	capture_bar.visible = point.capturable
 	if not point.capturable:
-		state = "MAIN BASE"
+		state = "HOME BASE" if point.owning_team == my_team else "CANNOT BE CAPTURED"
 	elif own == enemy:
 		state = "CONTESTED"
 	elif own < enemy:

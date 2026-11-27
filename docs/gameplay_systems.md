@@ -69,10 +69,10 @@ Scripts:
   - `capture_progress` runs from `-1.0` (fully OPFOR) to `+1.0` (fully USMC). The side with more soldiers moves it by `delta / capture_time × difference` (`capture_time = 10 s`, difference capped at `max_capture_multiplier = 4`).
   - An enemy flag must be dragged back through `0` first: crossing `0` makes it neutral (`captured(name, Teams.NONE)`), reaching `±1` hands it over (`captured(name, team)`).
   - Equal numbers from both teams = **contested**: progress holds. Nobody present: progress drifts back to the owner's full height (or to `0` if neutral) — **owned flags stay owned**.
-  - `initial_team` pre-owns a flag; `capturable = false` locks it (main bases).
+  - `initial_team` pre-owns a flag; `capturable = false` locks it (main bases). Main-base flags fly a bigger banner (`base_banner_scale = 1.6`) with a team-coloured ring around the pole, so they read differently from capturable flags at a distance.
   - The banner rises and lowers with `|capture_progress|` and takes the owner's colour, or the raising team's colour on a neutral flag.
 - **Ticket Bleed**: `ConquestManager` starts both teams at `300` tickets. Every `1.0 s`, if one team holds more capture points, the losing team bleeds `ceil(bleed_rate × majority_diff / total_points)` tickets. Every death also costs the victim's team `kill_ticket_cost = 1` (`on_player_killed(team)`, called by `PlayerController` on death). Reaching `0` tickets emits `game_over(winning_team)` once.
-- **Game HUD**: Team-coloured ticket counters with `»` marking your own team; a capture panel (flag name, state — `CAPTURING`, `NEUTRALISING`, `SECURING`, `SECURED`, `CONTESTED`, `OUTNUMBERED`, `MAIN BASE` — and a progress bar in the leading team's colour) whenever you or your vehicle are in a zone; team-coloured `3 s` capture / neutralise banners and a persistent `<TEAM> WINS` banner; the vehicle telemetry panel (`VehicleIndicator`, `ALT` in meters, `SPD` in km/h) and contextual `[E]` prompts.
+- **Game HUD**: Team-coloured ticket counters with `»` marking your own team; a capture panel (flag name, state — `CAPTURING`, `NEUTRALISING`, `SECURING`, `SECURED`, `CONTESTED`, `OUTNUMBERED`, or for main bases `HOME BASE` / `CANNOT BE CAPTURED` with no bar — and a progress bar in the leading team's colour) whenever you or your vehicle are in a zone; team-coloured `3 s` capture / neutralise banners and a persistent `<TEAM> WINS` banner; the vehicle telemetry panel (`VehicleIndicator`, `ALT` in meters, `SPD` in km/h) and contextual `[E]` prompts.
 
 
 ---
@@ -154,32 +154,42 @@ Scene: [kit_select.tscn](file:///home/dmb/OpenDesertCombat/godot/scenes/ui/kit_s
 | 2 | Medic | M60 + Medkits | 110 | 0.9× |
 | 3 | Sniper | M24 + C4 | 75 | 1.1× |
 
+Kit data lives in `Kits` (`scripts/game/kits.gd`), shared by the menu, `MatchManager` and `PlayerController`.
+
 **Flow:**
-1. `HealthComponent.died` fires → `PlayerController._on_player_died()` → `ConquestManager.on_player_killed(team)` (−1 ticket) → `KitSelectMenu.show_menu(team, kit)` with the current team and last kit preselected
-2. Player picks a team (**USMC** / **OPFOR**) and a kit, then clicks **DEPLOY**
-3. 5-second countdown (`spawn_countdown`)
-4. `deploy_confirmed(team, kit_id)` signal → `PlayerController._on_deploy_confirmed()` sets the team (and its uniform tint), applies `max_health` from kit data, calls `HealthComponent.reset()`, teleports the player to `Spawn<TEAM>` (`SpawnUSMC` / `SpawnOPFOR`)
-5. Mouse recaptured, `_is_dead = false`
+1. `HealthComponent.died` → `MatchManager` records the death (ticket, kill credit, respawn timer) and `PlayerController` opens `KitSelectMenu.show_menu(match, participant)` with the current team, last kit and last spawn preselected
+2. Player picks a **team**, a **kit** and a **spawn point**. Only spawn points the chosen team holds are listed (main base + captured flags); the list refreshes every 0.5 s, and if the chosen flag is lost the menu says so and falls back to the main base
+3. **DEPLOY** during the respawn timer (`MatchManager.respawn_time = 10 s`) queues the deploy ("Deploying at Alpha in 3…"); after the timer it deploys at once
+4. `deploy_requested(team, kit_id, spawn_point)` → `PlayerController` → `MatchManager.request_spawn()`, which re-validates everything. Rejected: the menu shows the reason. Approved: `PlayerController.spawn_at()` applies team tint, kit health and **kit speed**, and places the player at `SpawnPoint.get_spawn_transform()` (random spot within `spread_radius`, snapped to the ground)
 
-> [!NOTE] This is the interim deploy screen. Sprint 4.3 replaces it with team → kit → spawn point on a map overview.
+> [!NOTE] This is the interim deploy screen. Sprint 4.3 replaces it with a map overview.
 
-**Fallback:** If no `KitSelectMenu` node is found, `PlayerController` auto-respawns after 5 s.
+**Fallback:** In a scene without `MatchManager`/`KitSelectMenu`, `PlayerController` respawns after 5 s at a spawn point its team holds.
 
 ---
 
-## 8. Vehicle Spawn Manager (`VehicleSpawnManager`)
+## 8. Vehicle Spawns (`VehicleSpawn`)
 
-Script: [vehicle_spawn_manager.gd](file:///home/dmb/OpenDesertCombat/godot/scripts/game/vehicle_spawn_manager.gd)
+Script: `godot/scripts/game/vehicle_spawn.gd` · Test: `godot/tests/match_test.gd`
 
-Add as a node in any map scene. Call `register_vehicle(scene, spawn_node)` for each vehicle that should respawn.
+A `Marker3D` placed in the map that keeps **one vehicle alive at that spot for whichever team holds its flag**. It replaces the old central `VehicleSpawnManager`.
 
-**Lifecycle:**
-1. Instances vehicle from `PackedScene`, places it at `spawn_node.global_transform`
-2. Wires `HealthComponent.died` → `_on_vehicle_died`
-3. On death: waits 4 s (wreck visible), then `queue_free`s the instance
-4. Waits `respawn_delay` (30 s default), re-instances from scene, re-places and re-wires
+| Export | Default | Notes |
+|---|---|---|
+| `usmc_vehicle_scene` / `opfor_vehicle_scene` | — | Scene per owning team; if only one is set it is used for both |
+| `vehicle_name` | scene name | Node name of the spawned vehicle (e.g. `Tank`, `OPFORTank`) |
+| `capture_point` | parent flag | Ownership follows this flag; main-base vehicles point at the base's uncapturable flag |
+| `team` | Neutral | Fixed owner, used only when there is no flag |
+| `spawn_at_start` | `true` | Spawn on load if the flag is already owned |
+| `respawn_delay` | 30 s | After the wreck is removed or an abandoned vehicle is returned |
+| `wreck_time` | 4 s | How long a destroyed vehicle stays on show |
+| `abandon_time` / `abandon_distance` | 60 s / 30 m | Empty and farther than this from its spawn for this long → returned |
 
-> [!NOTE] `VehicleSpawnManager` is in the codebase and ready to use. It is not yet auto-wired in `test_desert.tscn` — add it as a child and call `register_vehicle()` from `test_desert.gd` in a future sprint when wreck/respawn is a priority.
+**Rules:**
+- Nothing spawns while the flag is neutral; once a team holds it, that team's vehicle appears.
+- A vehicle already in the field is never taken away when its flag changes hands; only the *next* spawn follows the new owner.
+- Occupied vehicles are never treated as abandoned, however far they go.
+- Signals: `vehicle_spawned(vehicle)`, `vehicle_removed(reason)` with `"destroyed"` or `"abandoned"`.
 
 ---
 
@@ -235,4 +245,32 @@ A static helper class (no node, no autoload) that is the single source of truth 
 **Who has a team:** `PlayerController.team` (exported, default USMC, changed on the deploy screen); every vehicle's `team` is its crew's team while occupied and `NONE` when empty.
 
 **Friendly fire:** `HealthComponent.take_damage()` ignores hits where `Teams.is_friendly_fire(attacker, get_parent())` is true. `Teams.friendly_fire` (static, default `false`) turns it on. Self-damage and damage with no attacker (crashes) always apply. Empty vehicles are neutral, so anyone can damage them.
+
+---
+
+## 11. Match, Participants & Spawn Points (`MatchManager`, `SpawnPoint`)
+
+Scripts: `godot/scripts/game/match_manager.gd`, `participant.gd`, `spawn_point.gd`, `kits.gd` · Test: `godot/tests/match_test.gd`
+
+`MatchManager` is the authority for who is in the match, where they may spawn, and the score. Clients *request*; it validates and acts.
+
+**Participants** (`Participant`, plain data): `id`, `display_name`, `team`, `kit_id`, `actor`, `is_local`, `is_bot`, `alive`, `death_time`, `kills`, `deaths`, `score`. `register(actor, name, team)` adds one and listens to the actor's `HealthComponent.died`. `participant_for(node)` resolves a soldier from their body or from a vehicle's `occupant`.
+
+**Deaths & score:**
+
+| Event | Effect |
+|---|---|
+| Death (any cause) | victim `deaths += 1`, `alive = false`, −1 team ticket via `ConquestManager.on_player_killed()` |
+| Enemy kill | killer `kills += 1`, `score += SCORE_KILL` (10) |
+| Teamkill (only with friendly fire on) | killer `score += SCORE_TEAMKILL` (−20) |
+| Flag captured | each living soldier of the new owner on the flag `score += SCORE_CAPTURE` (20) |
+| Flag neutralised | each attacker on the flag `score += SCORE_NEUTRALISE` (10) |
+
+Signals: `participant_joined`, `participant_spawned`, `participant_died(victim, killer)`, `score_changed`.
+
+**Spawning:** `request_spawn(participant, team, kit_id, spawn_point)` returns `""` on success or a reason: not in the match, already deployed, invalid team/kit/spawn, spawn point not held by that team, or respawn timer still running (`respawn_time`, default 10 s). On success it calls the actor's `spawn_at(transform, team, kit_id)`.
+
+**`SpawnPoint`** (`Marker3D`, group `spawn_points`): owned by its `capture_point` (or parent flag), else a fixed `team`. `get_spawn_transform()` picks a random spot within `spread_radius` (4 m) and snaps it to the ground with a downward ray against the World layer — ready for heightmap terrain. `get_display_name()` uses `spawn_name` or the flag's name.
+
+**Main bases** are ordinary `CapturePoint`s with `initial_team` set and `capturable = false`. Their spawn points and vehicle spawns point at them, so a base and a captured flag work the same way. Base flags count toward the ticket-bleed majority like any other flag.
 

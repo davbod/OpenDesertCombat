@@ -11,6 +11,7 @@ var events: Array = []  # [point_name, team] from ConquestManager.point_captured
 var map: Node
 var player: PlayerController
 var conquest: ConquestManager
+var match_mgr: MatchManager
 var alpha: CapturePoint
 var bravo: CapturePoint
 var kit_menu: KitSelectMenu
@@ -28,19 +29,20 @@ func _run() -> void:
 	current_scene = map
 	player = map.find_child("Player", true, false) as PlayerController
 	conquest = map.find_child("ConquestManager", true, false) as ConquestManager
+	match_mgr = map.find_child("MatchManager", true, false) as MatchManager
 	alpha = map.find_child("CapturePointAlpha", true, false) as CapturePoint
 	bravo = map.find_child("CapturePointBravo", true, false) as CapturePoint
 	kit_menu = map.find_child("KitSelectMenu", true, false) as KitSelectMenu
 	hud = map.find_child("GameHUD", true, false) as GameHUD
 	tank = map.find_child("Tank", true, false) as Node3D
-	if not (player and conquest and alpha and bravo and kit_menu and hud and tank):
+	if not (player and conquest and match_mgr and alpha and bravo and kit_menu and hud and tank):
 		_fail("test_desert.tscn is missing a required node")
 		_finish()
 		return
 	# Speed things up: 2 s per capture swing, near-instant deploy
 	alpha.capture_time = 2.0
 	bravo.capture_time = 2.0
-	kit_menu.spawn_countdown = 0.1
+	match_mgr.respawn_time = 0.1
 	conquest.point_captured.connect(func(n: String, t: int) -> void: events.append([n, t]))
 	await _ticks(30)
 
@@ -56,7 +58,7 @@ func _run() -> void:
 
 func _test_team_basics() -> void:
 	print("\n-- Team basics")
-	_check(conquest.capture_points.size() == 2, "ConquestManager finds both capture points")
+	_check(conquest.capture_points.size() == 4, "ConquestManager finds 4 flags (2 bases + Alpha + Bravo)")
 	_check(Teams.enemy_of(Teams.USMC) == Teams.OPFOR and Teams.enemy_of(Teams.OPFOR) == Teams.USMC, "enemy_of is symmetric")
 	_check(Teams.of(null) == Teams.NONE, "Teams.of(null) is NONE")
 	_check(player.team == Teams.USMC, "player starts on USMC")
@@ -124,12 +126,14 @@ func _test_death_and_team_respawn() -> void:
 
 	kit_menu.select_team(Teams.OPFOR)
 	kit_menu.select_kit(3)  # Sniper, 75 hp
+	var spawn := map.find_child("SpawnOPFOR", true, false) as SpawnPoint
+	_check(kit_menu.selected_spawn == spawn, "deploy menu defaults to the OPFOR main base")
 	kit_menu._on_confirm_pressed()
 	await _ticks(30)
-	var spawn := map.find_child("SpawnOPFOR", true, false) as Node3D
+	var flat := Vector2(player.global_position.x - spawn.global_position.x, player.global_position.z - spawn.global_position.z).length()
 	_check(player.is_alive(), "player respawned")
 	_check(player.team == Teams.OPFOR, "player switched to OPFOR")
-	_check(player.global_position.distance_to(spawn.global_position) < 2.0, "respawned at SpawnOPFOR (%.1f m away)" % player.global_position.distance_to(spawn.global_position))
+	_check(flat <= spawn.spread_radius + 0.5, "respawned at SpawnOPFOR (%.1f m away)" % flat)
 	_check(is_equal_approx(player.health_component.max_health, 75.0) and is_equal_approx(player.health_component.current_health, 75.0), "Sniper kit health applied")
 	enemy.queue_free()
 
@@ -156,7 +160,9 @@ func _test_capture_and_hold() -> void:
 
 func _test_vehicle_capture_and_contest() -> void:
 	print("\n-- USMC tank neutralises and recaptures Alpha; equal numbers hold the flag")
+	# Direct team switch for the test (the real flow is death → deploy menu)
 	player.set_team(Teams.USMC)
+	player.participant.team = Teams.USMC
 	player._enter_vehicle(tank)
 	_teleport_body(tank, alpha.global_position + Vector3(0, 1.5, 0))
 	await _ticks(300)

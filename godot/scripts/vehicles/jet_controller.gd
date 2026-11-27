@@ -89,7 +89,7 @@ var _bomb_cooldown: float = 0.0
 var _rearm_timer: float = 0.0
 var _next_gun_side: float = 1.0
 var _prev_speed: float = 0.0
-var _occupant: Node3D = null
+var occupant: Node3D = null  ## Driver/pilot while occupied
 
 var _bomb_scene: PackedScene = preload("res://scenes/weapons/rocket_projectile.tscn")
 var _tracer_scene: PackedScene = preload("res://scenes/weapons/cannon_shell.tscn")
@@ -346,7 +346,7 @@ func _fire_gun() -> void:
 		if body is Node:
 			var hc: HealthComponent = (body as Node).find_child("HealthComponent", true, false) as HealthComponent
 			if hc:
-				hc.take_damage(gun_damage, _occupant if _occupant else self)
+				hc.take_damage(gun_damage, occupant if occupant else self)
 
 	var tracer := _tracer_scene.instantiate() as Node3D
 	var scene_root: Node = get_tree().current_scene if get_tree().current_scene else get_tree().root
@@ -397,14 +397,14 @@ func get_hud_status() -> String:
 func enter_vehicle(player: Node3D) -> int:
 	is_occupied = true
 	team = Teams.of(player)
-	_occupant = player
+	occupant = player
 	return 0
 
 
 func exit_vehicle(_player: Node3D) -> void:
 	is_occupied = false
 	team = Teams.NONE
-	_occupant = null
+	occupant = null
 	stick_pitch = 0.0
 	stick_roll = 0.0
 	rudder = 0.0
