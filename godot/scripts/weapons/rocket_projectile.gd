@@ -1,4 +1,4 @@
-## Rocket Projectile (Hydra 70 / RPG-7)
+## Rocket projectile (helicopter rockets, RPG, jet bombs)
 ## Moves forward with optional gravity drop, detects hits via raycast sweep,
 ## and applies impulse/splash effect on impact.
 

@@ -6,9 +6,9 @@ long-range battles — it also happens to be open source.
 
 > [!NOTE] **Early prototype — Sprint 4 (the Conquest loop) is in progress.** Red vs blue
 > teams, flag capture, spawning at captured flags, vehicles that belong to flags and the
-> deploy menu all work. Helicopter, jet, Humvee and tank are driveable. There are no
-> opponents yet: bots arrive in Sprint 5, multiplayer in Sprint 6. See the
-> [roadmap](docs/roadmap.md).
+> deploy menu all work. The attack helicopter, multirole fighter jet, utility vehicle and
+> main battle tank are driveable. There are no opponents yet: bots arrive in Sprint 5,
+> multiplayer in Sprint 6. See the [roadmap](docs/roadmap.md).
 
 ODC is an independent, original game. It is not affiliated with or endorsed by Electronic
 Arts, DICE or the original *Desert Combat* team, and contains no assets from their games
@@ -53,15 +53,15 @@ done
 |---|---|---|
 | **Infantry** | Move | `W` `A` `S` `D` |
 | | Sprint / Crouch / Jump | `Left Shift` / `Left Ctrl` / `Space` |
-| | Fire (rifle or RPG-7) | `Left Mouse` |
-| | Switch weapon (rifle / RPG-7) | `1` / `2` |
+| | Fire (rifle or RPG) | `Left Mouse` |
+| | Switch weapon (rifle / RPG) | `1` / `2` |
 | | Enter / exit vehicle | `E` |
 | **Helicopter** | Collective up / down | `W` / `S` |
 | | Yaw left / right | `A` / `D` |
 | | Cyclic pitch / roll | `Mouse` |
 | | Fire rockets | `Left Mouse` |
 | | Toggle chase / cockpit camera | `V` |
-| **Humvee** | Throttle / reverse | `W` / `S` |
+| **Utility vehicle** | Throttle / reverse | `W` / `S` |
 | | Steer left / right | `A` / `D` |
 | | Handbrake | `Space` |
 | | Toggle chase / cockpit camera | `V` |
@@ -97,12 +97,12 @@ done
 
 | Kit | Listed weapon | Health | Speed |
 |---|---|---|---|
-| Assault | M4A1 + Grenades | 100 | 1.0× |
-| Engineer | MP5 + AT Mines | 85 | 1.05× |
-| Medic | M60 + Medkits | 110 | 0.9× |
-| Sniper | M24 + C4 | 75 | 1.1× |
+| Assault | Assault Rifle + Grenades | 100 | 1.0× |
+| Engineer | SMG + AT Mines | 85 | 1.05× |
+| Medic | LMG + Medkits | 110 | 0.9× |
+| Sniper | Sniper Rifle + C4 | 75 | 1.1× |
 
-Kits only change health and speed so far; every kit carries the rifle and RPG-7.
+Kits only change health and speed so far; every kit carries the rifle and RPG.
 
 ## Project Structure
 

@@ -64,7 +64,7 @@ class_name JetController
 @export var crash_damage_per_ms: float = 12.0  ## Damage per m/s beyond the threshold
 
 @export_group("Vehicle")
-@export var vehicle_name: String = "F-16 Fighting Falcon (Prototype)"
+@export var vehicle_name: String = "Multirole Fighter"
 @export var seat_positions: Array[Vector3] = [Vector3(0.0, 1.05, -3.2)]
 @export var chase_camera_offset: Vector3 = Vector3(0.0, 5.0, 20.0)
 @export var is_occupied: bool = false

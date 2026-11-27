@@ -22,7 +22,7 @@ var current_seat: int = -1
 var use_chase_camera: bool = false
 var hud: GameHUD = null
 var fire_cooldown: float = 0.0
-var active_weapon: int = 1  # 1 = Rifle, 2 = RPG-7
+var active_weapon: int = 1  # 1 = Rifle, 2 = RPG
 var rocket_scene: PackedScene = preload("res://scenes/weapons/rocket_projectile.tscn")
 
 ## --- Team & Kit ---

@@ -125,7 +125,7 @@ layout_mode = 2
 [node name="VehicleIndicator" type="Label" parent="VehiclePanel/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "AH-64 Apache"
+text = "Vehicle"
 
 [node name="AltitudeDisplay" type="Label" parent="VehiclePanel/VBox"]
 layout_mode = 2
