@@ -1,9 +1,10 @@
 # OpenDesertCombat — Development Roadmap
 
 > Sprints are prioritised against the pillars in [Design Goals](design_goals.md).
-> *Last updated 2026-11-27 — Sprints 1–3, 4.1 and 4.2 done. **Next: Hardening**, then the
-> Godot 4.7.2 upgrade, then 4.3 (menus).* Known problems are tracked under
-> [Known issues](#known-issues), each with the milestone that fixes it.
+> *Last updated 2026-11-27 — Sprints 1–3, 4.1 and 4.2 done; Hardening is done except repo
+> hygiene. **Next:** finish Hardening, then the Godot 4.7.2 upgrade, then 4.3 (menus).*
+> Known problems are tracked under [Known issues](#known-issues), each with the milestone
+> that fixes it.
 >
 > **Current focus:** the **Community track** (build excitement from now until launch)
 > runs alongside **Sprint 4**, the Conquest loop: large maps, red vs blue teams,
@@ -188,7 +189,7 @@ italic note says which milestone fixes it.*
 ### Architecture (blocks bots and multiplayer)
 - [ ] **Vehicles and the player read `Input` directly** (5 scripts), so only the local keyboard can drive anything. Bots and network clients need a controls abstraction that local input, a bot brain or the network can fill. *5.0*
 - [ ] **`PlayerController` is soldier and local player in one** — body, weapons and health are mixed with camera, HUD and menu wiring (found with `find_child`). A second soldier (bot) would take over the local HUD and menu. *5.0*
-- [ ] **Damage is applied by whoever fires** (hitscan in the shooter's script) — fine single-player, not authoritative for multiplayer. *Sprint 6*
+- [ ] **Damage is applied by whoever fires** (hitscan in the shooter's script, blasts in `Explosion.detonate()` called by the projectile or tank) — fine single-player, not authoritative for multiplayer. *Sprint 6*
 - [ ] `Teams.friendly_fire` is a static, global setting; it belongs in per-match settings. *4.3 match options*
 - [ ] Unused tank exports `linear_damping_ground` and `turret_turn_speed`. *Hardening*
 - [ ] The helicopter's second seat position is defined but unused. *When multi-seat vehicles arrive*

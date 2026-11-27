@@ -3,8 +3,8 @@
 How each system works today, with the numbers that matter for tuning. Values are code
 defaults unless noted; the test map can override them per node.
 
-> Last reviewed 2026-11-27 (end of Sprint 4.2). Known gaps are listed in the
-> [roadmap](roadmap.md#known-issues) and flagged ⚠ below.
+> Last reviewed 2026-11-27 (end of Sprint 4.2, updated for Hardening). Known gaps are
+> listed in the [roadmap](roadmap.md#known-issues) and flagged ⚠ below.
 
 ## Contents
 

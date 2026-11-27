@@ -1,7 +1,7 @@
 # OpenDesertCombat — Architecture Overview
 
-> Last reviewed 2026-11-27 (end of Sprint 4.2). Gameplay numbers live in
-> [Gameplay Systems](gameplay_systems.md); open problems in the
+> Last reviewed 2026-11-27 (end of Sprint 4.2, updated for Hardening). Gameplay numbers
+> live in [Gameplay Systems](gameplay_systems.md); open problems in the
 > [roadmap](roadmap.md#known-issues).
 
 ## 1. Engine & Platforms
