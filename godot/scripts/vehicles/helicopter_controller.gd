@@ -33,7 +33,7 @@ class_name HelicopterController
 @export var ground_effect_multiplier: float = 1.25  ## Thrust multiplier at ground level
 
 @export_group("Vehicle")
-@export var vehicle_name: String = "AH-64 Apache (Prototype)"
+@export var vehicle_name: String = "Attack Helicopter"
 @export var seat_positions: Array[Vector3] = [Vector3(0.0, 0.55, -1.6), Vector3(0.0, 0.8, -2.5)]
 @export var chase_camera_offset: Vector3 = Vector3(0.0, 4.0, 13.0)
 @export var is_occupied: bool = false

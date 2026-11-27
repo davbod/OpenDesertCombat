@@ -33,8 +33,8 @@ Every milestone should end with something people can watch, play or talk about.
 ### C0 — Before going public
 - [x] Name check — **keeping OpenDesertCombat**; "Open" means open terrain and open battle (it also happens to be open source). The only "DESERT COMBAT" trademark found was DICE's US-only class 9 registration, dead since 2013–14. Describe the game as *inspired by* Desert Combat and never use EA/DICE/Desert Combat logos or assets
 - [ ] Before an itch.io/Steam release: check the EU, UK and Swedish registers by hand on TMview (automated search couldn't reach them)
-- [ ] Remove `tools/odc-converter`, the root `CMakeLists.txt` and the Refractor format notes from this repo (move them to a separate repo if they're still wanted) — an extractor for *Battlefield 1942* archives contradicts the original-content policy — *in Hardening*
-- [ ] Generic or invented in-game names instead of real products ("M1A1 Abrams", "F-16 Fighting Falcon", "AH-64 Apache", "HMMWV", real weapon names) — vehicle makers have taken shooters to court over this before — *in Hardening*
+- [x] Remove `tools/odc-converter`, the root `CMakeLists.txt` and the Refractor format notes from this repo — an extractor for *Battlefield 1942* archives contradicts the original-content policy. Removed in Hardening; they stay in git history if ever wanted for a separate repo
+- [x] Generic or invented in-game names instead of real vehicle and weapon designations — vehicle makers have taken shooters to court over this before. Done in Hardening: "Attack Helicopter", "Multirole Fighter", "Utility Vehicle", "Main Battle Tank", and kit weapons such as "Assault Rifle" and "SMG"; docs and comments use the same generic terms
 - [x] CI: headless import + all test suites on every pull request (`.github/workflows/ci.yml`)
 - [ ] Repo storefront: description, topics, social preview image, README hero GIF, "follow development" links
 - [ ] Contributor-ready: `CONTRIBUTING.md`, issue/PR templates, `good first issue` labels, GitHub Discussions
@@ -69,8 +69,8 @@ Every milestone should end with something people can watch, play or talk about.
 
 ## Sprint 2: Ground Vehicles & Combat — ✅ Complete
 - [x] `HumveeController` 4-wheel `VehicleBody3D`
-- [x] `RocketProjectile` ballistic sweep + splash impulse (Hydra 70 pods + RPG-7) and hitscan rifle
-- [x] `HealthComponent` reusable node — signals `damaged`, `healed`, `died`, `health_changed`; wired to Player, Helicopter, Humvee, Tank
+- [x] `RocketProjectile` ballistic sweep + splash impulse (helicopter rocket pods + RPG) and hitscan rifle
+- [x] `HealthComponent` reusable node — signals `damaged`, `healed`, `died`, `health_changed`; wired to player, helicopter, utility vehicle, tank
 - [x] `VehicleSpawnManager` — registers vehicle + spawn point, auto-respawns after 30 s on death (replaced by `VehicleSpawn` nodes in 4.2)
 - [x] `TankController` — `RigidBody3D` tracks tank: drive/steer forces, anti-slip, turret yaw (mouse X), barrel pitch clamped −5°/+15°, AP cannon hitscan + `CannonShell` tracer
 - [x] `CannonShell` tracer scene and script
@@ -83,7 +83,7 @@ Every milestone should end with something people can watch, play or talk about.
 - [x] `JetController` fixed-wing flight model — lift ∝ v² × AoA with stall, parasitic + induced drag, fly-by-wire rate command, AoA limiter, stick-free auto-trim
 - [x] Jet weapons: hitscan 20 mm cannon with tracers, free-fall bombs (4, rearming)
 - [x] Crash damage from impact speed; destroyed vehicles kill their occupants
-- [x] `HealthComponent` added to Helicopter (300) and Humvee (200) — previously documented but missing
+- [x] `HealthComponent` added to the helicopter (300) and utility vehicle (200) — previously documented but missing
 - [x] Map enlarged to 8 × 8 km with a 900 m runway; jet spawns at the threshold
 - [x] Headless flight-model test (`tests/jet_flight_test.gd`)
 
@@ -113,7 +113,7 @@ kit or spawn and the match manager decides. Bots (Sprint 5) and network peers
 - [x] Abandoned-vehicle respawn (empty and away from its spawn for N seconds)
 - [x] Respawn timer with queued deploy; kit speed applied (only health was)
 - [x] Deploy menu lists only the spawn points your team holds and falls back to the base if a flag is lost
-- [x] Test map: OPFOR main base 400 m north with its own tank and Humvee; Humvee at Alpha for whoever holds it
+- [x] Test map: OPFOR main base 400 m north with its own tank and utility vehicle; a utility vehicle at Alpha for whoever holds it
 - [x] Main-base flags look different (bigger banner, team-coloured ring) and the HUD says `HOME BASE` / `CANNOT BE CAPTURED` — from the first play-test
 - [x] Deploy menu drawn above the HUD; clear selected state on team / kit / spawn buttons
 - [x] Headless test (`tests/match_test.gd`, 59 checks)
@@ -125,7 +125,7 @@ From the 2026-11-27 review; fixes the [Known issues](#known-issues) marked *Hard
 - [x] CI: GitHub Actions runs the headless import and all test suites on every pull request and push to `master` (`.github/workflows/ci.yml`)
 - [x] Shared test helpers (`tests/test_base.gd`) and one runner script (`tests/run_all.sh`) instead of copy-pasted helpers in each suite
 - [ ] Repo hygiene: commit `*.import` files; raise key GDScript warnings (start with untyped declarations); tidy `test_desert.gd`; remove unused tank exports; delete merged branches and the old worktree
-- [ ] Pre-public clean-up from C0: remove the converter tool and Refractor notes; generic in-game vehicle and weapon names
+- [x] Pre-public clean-up from C0: remove the converter tool and Refractor notes; generic in-game vehicle and weapon names
 
 ### Engine upgrade: Godot 4.7.2 — before 4.3
 - [ ] Godot 4.4.1 → 4.7.2 in its own PR with CI green: re-check the jet envelope and vehicle handling under the newer Jolt; update the README and CI to the new binary (CI: the `GODOT_VERSION` line in `ci.yml`). Needed for Terrain3D 1.1; cheapest while the codebase is small
@@ -160,7 +160,7 @@ From the 2026-11-27 review; fixes the [Known issues](#known-issues) marked *Hard
 - [ ] Bots use the same deploy/spawn rules as humans; fill teams to a configurable size
 - [ ] Kit loadouts: real weapons and gadgets per kit (sniper rifle, LMG, SMG, AT mines, C4, medkits, grenades), so kits — and bots — play different roles
 - [ ] IFF: team-coloured name tags / markers for friendlies, crosshair name on enemies
-- [ ] Simple vehicle use (drive a Humvee/tank to a flag) — stretch
+- [ ] Simple vehicle use (drive a utility vehicle or tank to a flag) — stretch
 
 ## Sprint 6: Multiplayer & Linux Release
 - [ ] Headless dedicated server mode (`--headless`)
@@ -183,7 +183,7 @@ italic note says which milestone fixes it.*
 - [x] **Tank can't hurt infantry** — the cannon ray ignored Players and the shell had no splash. *Fixed in Hardening: mask 7 and an HE `Explosion`.*
 - [x] **Rockets and bombs fly through soldiers** — the flight ray ignored Players; only the splash hurt them. *Fixed in Hardening: mask 7; the body hit takes full damage once.*
 - [x] **Ticket bleed is flat** — `ceil(bleed_rate × difference / total)` was 1 ticket/s for *any* flag deficit. *Fixed in Hardening: fractional accumulator.*
-- [ ] **Kits are health and speed only** — every kit carries the same rifle + RPG-7; the listed weapons and gadgets aren't implemented. *5.1 kit loadouts*
+- [ ] **Kits are health and speed only** — every kit carries the same rifle + RPG; the listed weapons and gadgets aren't implemented. *5.1 kit loadouts*
 
 ### Architecture (blocks bots and multiplayer)
 - [ ] **Vehicles and the player read `Input` directly** (5 scripts), so only the local keyboard can drive anything. Bots and network clients need a controls abstraction that local input, a bot brain or the network can fill. *5.0*
@@ -199,7 +199,8 @@ italic note says which milestone fixes it.*
 - [ ] GDScript warnings aren't raised to errors (the docs used to claim they were). *Hardening*
 - [ ] `test_desert.gd` has stale comments and hard-codes "v0.1.0"; the project version is still 0.1.0. *Hardening; v0.2.0 at Sprint 4 wrap-up*
 - [ ] Merged branches (`feat/fixed-wing-jet`, `docs/design-goals`, `worktree-design-goals`) and the old `.claude/worktrees/design-goals` worktree are still around. *Hardening*
+- [ ] Some internal identifiers still use real designations: `HumveeController`, `humvee.tscn`, the `Humvee` map nodes and `_fire_hydra_rocket`. Players never see them. *Rename later*
 
 ### Before going public
-- [ ] **`tools/odc-converter` and the Refractor format notes** — an extractor for *Battlefield 1942* archives contradicts the original-content policy. Decision: remove from this repo (move to a separate repo if still wanted). *C0, in Hardening*
-- [ ] **Real product names in game** — "M1A1 Abrams", "F-16 Fighting Falcon", "AH-64 Apache", "HMMWV" versus the "original vehicle and weapon designs" pillar. Decision: generic or invented names. *C0, in Hardening*
+- [x] **`tools/odc-converter` and the Refractor format notes** — an extractor for *Battlefield 1942* archives contradicted the original-content policy. Removed, with the root `CMakeLists.txt` and the converter's `.gitignore` entries. *Done in Hardening*
+- [x] **Real product names in game** — real vehicle and weapon designations went against the "original vehicle and weapon designs" pillar. Replaced with generic names in game, docs and comments. *Done in Hardening*

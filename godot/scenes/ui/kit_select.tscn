@@ -60,7 +60,7 @@ theme_override_font_sizes/font_size = 22
 
 [node name="KitWeaponLabel" type="Label" parent="CenterContainer"]
 unique_name_in_owner = true
-text = "Weapon: M4A1 + Grenades"
+text = "Weapon: Assault Rifle + Grenades"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 16
 

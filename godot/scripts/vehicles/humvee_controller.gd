@@ -1,10 +1,10 @@
-## Ground Wheeled Vehicle Controller (Humvee / Desert Recon)
+## Utility vehicle controller (wheeled 4×4).
 ## Uses Godot's VehicleBody3D with Jolt Physics.
 
 extends VehicleBody3D
 class_name HumveeController
 
-@export var vehicle_name: String = "HMMWV Desert Recon"
+@export var vehicle_name: String = "Utility Vehicle"
 @export var max_engine_force: float = 3200.0
 @export var max_brake_force: float = 80.0
 @export var max_steer_angle: float = 0.45

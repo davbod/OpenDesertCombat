@@ -27,14 +27,6 @@
 - **Large terrain:** Terrain3D (MIT GDExtension) is the chosen route for large maps
   (Sprint 4.4).
 
-### Legacy tools
-
-`tools/odc-converter` (C++20, built with the root `CMakeLists.txt`) is a skeleton for
-reading *Battlefield 1942* `.rfa` archives; every command is still a stub. It and the
-[Refractor format notes](formats/refractor_formats.md) are not used by the game and
-contradict the [original-content policy](design_goals.md); they are scheduled for removal
-from this repository before going public ([roadmap C0](roadmap.md#c0--before-going-public)).
-
 ---
 
 ## 2. Physics Layers & Collision Masks
@@ -45,7 +37,7 @@ Layers are named in `godot/project.godot`:
 |---|---|---|---|
 | 1 | `World` | 1 | Ground, helipad, runway, bunkers (`StaticBody3D`) |
 | 2 | `Players` | 2 | `PlayerController` (`CharacterBody3D`) |
-| 3 | `Vehicles` | 4 | Helicopter, jet, tank (`RigidBody3D`), Humvee (`VehicleBody3D`) |
+| 3 | `Vehicles` | 4 | Helicopter, jet, tank (`RigidBody3D`), utility vehicle (`VehicleBody3D`) |
 | 4 | `Projectiles` | 8 | Reserved — projectiles are ray-swept, not bodies |
 
 | Actor / query | Layer | Mask | Notes |
@@ -102,7 +94,8 @@ TestDesertMap (Node3D — test_desert.gd)
 ```
 
 Vehicles are spawned at runtime as children of their `VehicleSpawn` (with
-`top_level = true`), so `find_child("Tank")` still finds them.
+`top_level = true`), so `find_child("Tank")` still finds them. The `Humvee` nodes and scene
+are the utility vehicle (an internal name; players see "Utility Vehicle").
 
 ---
 
@@ -195,7 +188,7 @@ signals and damage sources.
 | Actor | `max_health` | On death |
 |---|---|---|
 | Player | 100 (kit 75–110) | Deploy menu; respawn after the 10 s timer |
-| Humvee | 200 | Occupant killed and ejected; wreck stays 4 s; its `VehicleSpawn` respawns it after `respawn_delay` |
+| Utility vehicle | 200 | Occupant killed and ejected; wreck stays 4 s; its `VehicleSpawn` respawns it after `respawn_delay` |
 | Jet | 250 | As above; also loses thrust and controls, and takes crash damage from impact speed |
 | Helicopter | 300 | As above |
 | Tank | 500 | As above |

@@ -17,7 +17,7 @@ defaults unless noted; the test map can override them per node.
 7. [Infantry](#7-infantry)
 8. [Vehicle spawns](#8-vehicle-spawns)
 9. [Helicopter](#9-helicopter)
-10. [Humvee](#10-humvee)
+10. [Utility vehicle](#10-utility-vehicle)
 11. [Tank](#11-tank)
 12. [Jet](#12-jet)
 
@@ -162,13 +162,13 @@ so it draws above the HUD.
 
 | ID | Name | Listed weapon | Health | Speed |
 |---|---|---|---|---|
-| 0 | Assault | M4A1 + Grenades | 100 | 1.0× |
-| 1 | Engineer | MP5 + AT Mines | 85 | 1.05× |
-| 2 | Medic | M60 + Medkits | 110 | 0.9× |
-| 3 | Sniper | M24 + C4 | 75 | 1.1× |
+| 0 | Assault | Assault Rifle + Grenades | 100 | 1.0× |
+| 1 | Engineer | SMG + AT Mines | 85 | 1.05× |
+| 2 | Medic | LMG + Medkits | 110 | 0.9× |
+| 3 | Sniper | Sniper Rifle + C4 | 75 | 1.1× |
 
 ⚠ Kits only change health and movement speed so far. Every kit carries the same rifle and
-RPG-7; the listed weapons and gadgets are placeholders.
+RPG; the listed weapons and gadgets are placeholders.
 
 **Flow:**
 
@@ -227,15 +227,15 @@ health; the actor is its parent (used for the friendly-fire check).
 Signals: `damaged(amount, attacker)`, `healed(amount)`, `died(attacker)`,
 `health_changed(current, maximum)`.
 
-**Health pools:** Player 100 (kit 75–110), Humvee 200, Jet 250, Helicopter 300, Tank 500.
+**Health pools:** Player 100 (kit 75–110), utility vehicle 200, jet 250, helicopter 300, tank 500.
 
 **Damage sources:**
 
 | Source | Damage | Delivery | Can hit |
 |---|---|---|---|
 | Rifle | 25 per shot, every 0.11 s | Hitscan 300 m, ray mask World + Players + Vehicles | Everything; 4 hits kill a 100 hp soldier |
-| RPG-7 | Direct hit: 120 to a vehicle / 80 to a soldier. Splash: the same × falloff over 8 m | `RocketProjectile`, 95 m/s, 2.5 m/s² drop, flight ray World + Players + Vehicles | Everything |
-| Hydra 70 (helicopter) | as RPG-7 | Alternate wing pods every 0.22 s | as RPG-7 |
+| RPG | Direct hit: 120 to a vehicle / 80 to a soldier. Splash: the same × falloff over 8 m | `RocketProjectile`, 95 m/s, 2.5 m/s² drop, flight ray World + Players + Vehicles | Everything |
+| Helicopter rockets | as RPG | Alternate wing pods every 0.22 s | as RPG |
 | Tank cannon (HE) | Direct hit: 250. Splash: 150 to soldiers / 40 to vehicles × falloff over 6 m | Hitscan 1,800 m, ray mask World + Players + Vehicles, every 3.5 s | Everything; kills a soldier on a direct hit or within ≈ 2 m |
 | Jet 20 mm | 18 per round, every 0.07 s | Hitscan 1.5 km, ray mask World + Players + Vehicles | Everything |
 | Jet bomb | Direct hit: 450 to a vehicle / 200 to a soldier. Splash: the same × falloff over 16 m | `RocketProjectile` with `speed = 0` and full gravity | Everything |
@@ -268,7 +268,7 @@ Scene: [`player.tscn`](../godot/scenes/infantry/player.tscn)
 
 - **Movement:** walk 5.0, sprint 8.5 (`Shift`), crouch 2.5 m/s (`Ctrl`), all × the kit's
   speed; jump 4.5 m/s (`Space`); mouse sensitivity 0.002, pitch clamped to ±89°.
-- **Weapons:** slot `1` rifle, slot `2` RPG-7 (fired from 1.4 m in front of the camera,
+- **Weapons:** slot `1` rifle, slot `2` RPG (fired from 1.4 m in front of the camera,
   inheriting the player's velocity, 1.1 s cooldown). See [Health & damage](#6-health--damage).
 - **Team look:** the capsule's tan uniform is tinted 55 % toward the team colour.
 - **Vehicles:** the 6 m `InteractionRay` finds anything with `enter_vehicle()`. Entering
@@ -314,7 +314,8 @@ team holds its flag**. It replaced the unused central `VehicleSpawnManager` in S
 - Signals: `vehicle_spawned(vehicle)`, `vehicle_removed(reason)` with `"destroyed"` or
   `"abandoned"`.
 
-**On the test map** (both teams use the same vehicle scenes for now):
+**On the test map** (both teams use the same vehicle scenes for now; the `Humvee` nodes are
+the utility vehicle):
 
 | Spawn | Vehicle | Owner | `respawn_delay` |
 |---|---|---|---|
@@ -333,7 +334,7 @@ team holds its flag**. It replaced the unused central `VehicleSpawnManager` in S
 Script: [`helicopter_controller.gd`](../godot/scripts/vehicles/helicopter_controller.gd) ·
 Scene: [`helicopter.tscn`](../godot/scenes/vehicles/helicopter.tscn)
 
-`RigidBody3D`, 5,000 kg, health 300. Shown in game as "AH-64 Apache (Prototype)".
+`RigidBody3D`, 5,000 kg, health 300. Shown in game as "Attack Helicopter".
 
 - **Collective & engine spool:** `max_thrust = 85 kN` (≈1.73 thrust-to-weight),
   `idle_thrust_fraction = 0.42`, `engine_spool_rate = 1.2/s`. Holding `W` spools power to
@@ -347,25 +348,25 @@ Scene: [`helicopter.tscn`](../godot/scenes/vehicles/helicopter.tscn)
 - **Stability & drag:** quadratic drag (0.35); angular damping
   `−angular_velocity × 1.4 × mass`; gentle auto-level (4,500) when the cyclic is centred and
   tilt exceeds 0.08 rad.
-- **Weapons:** `LMB` fires Hydra 70 rockets (`RocketProjectile`) alternately from the wing
+- **Weapons:** `LMB` fires unguided rockets (`RocketProjectile`) alternately from the wing
   pods at (±2.1, −0.25, −1.2) every 0.22 s, inheriting the helicopter's velocity.
 - **Seats & camera:** two seat positions are defined but only the pilot seat is used; chase
   camera at (0, 4, 13).
 
 ---
 
-## 10. Humvee
+## 10. Utility vehicle
 
 Script: [`humvee_controller.gd`](../godot/scripts/vehicles/humvee_controller.gd) ·
 Scene: [`humvee.tscn`](../godot/scenes/vehicles/humvee.tscn)
 
 `VehicleBody3D`, 2,400 kg with the centre of mass lowered to (0, −0.35, 0), health 200,
 four `VehicleWheel3D`s (radius 0.46 m, suspension stiffness 45). Shown in game as
-"HMMWV Desert Recon".
+"Utility Vehicle" (the script and scene still use the internal name `Humvee`).
 
 - `W` / `S`: engine force 3,200 forward, 0.65× in reverse.
 - `A` / `D`: front-wheel steering up to 0.45 rad, eased at 3.5 rad/s.
-- `Space`: handbrake (80). Empty Humvees hold a resting brake of 15.
+- `Space`: handbrake (80). Empty utility vehicles hold a resting brake of 15.
 - No weapons; one seat (driver); chase camera at (0, 2.8, 7.5).
 
 ---
@@ -375,7 +376,7 @@ four `VehicleWheel3D`s (radius 0.46 m, suspension stiffness 45). Shown in game a
 Script: [`tank_controller.gd`](../godot/scripts/vehicles/tank_controller.gd) ·
 Scene: [`tank.tscn`](../godot/scenes/vehicles/tank.tscn)
 
-`RigidBody3D`, 62,000 kg, health 500. Shown in game as "M1A1 Abrams".
+`RigidBody3D`, 62,000 kg, health 500. Shown in game as "Main Battle Tank".
 
 | Parameter | Value | Notes |
 |---|---|---|
@@ -419,7 +420,7 @@ Test: [`jet_flight_test.gd`](../godot/tests/jet_flight_test.gd)
 `RigidBody3D`, 12,000 kg with explicit `inertia = (60000, 80000, 20000)`, health 250. Three
 sphere colliders act as landing gear, with a zero-friction airframe material (tyre grip and
 braking are applied in code). Damping modes are set to **replace**, so the project-default
-0.1/s damping does not add phantom drag. Shown in game as "F-16 Fighting Falcon (Prototype)".
+0.1/s damping does not add phantom drag. Shown in game as "Multirole Fighter".
 
 **Aerodynamics** (per physics tick):
 

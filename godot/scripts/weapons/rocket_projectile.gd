@@ -1,4 +1,4 @@
-## Rocket Projectile (Hydra 70 / RPG-7, and the jet's free-fall bombs)
+## Rocket projectile (helicopter rockets, RPG, jet bombs)
 ## Moves forward with optional gravity drop and sweeps a ray each tick for hits.
 ## On impact it detonates an Explosion: the body it struck takes full damage once, everything
 ## else in the blast radius takes splash damage with falloff.

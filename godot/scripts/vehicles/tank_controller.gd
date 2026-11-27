@@ -7,7 +7,7 @@ extends RigidBody3D
 class_name TankController
 
 ## --- Vehicle Contract ---
-var vehicle_name: String = "M1A1 Abrams"
+var vehicle_name: String = "Main Battle Tank"
 var seat_positions: Array[Vector3] = [Vector3(0.0, 1.35, -0.4)]
 var chase_camera_offset: Vector3 = Vector3(0.0, 3.5, 9.0)
 var is_occupied: bool = false
