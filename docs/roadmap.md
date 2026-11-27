@@ -120,8 +120,8 @@ kit or spawn and the match manager decides. Bots (Sprint 5) and network peers
 
 ### Hardening — next, before 4.3
 From the 2026-11-27 review; fixes the [Known issues](#known-issues) marked *Hardening*.
-- [ ] Combat fixes: rifle and rocket/bomb flight rays hit soldiers (World + Players + Vehicles, excluding the shooter); tank shells get HE splash so armour can hurt infantry
-- [ ] Ticket bleed grows with the flag lead (fractional accumulator instead of `ceil()`), with a test
+- [x] Combat fixes: rifle and rocket/bomb flight rays hit soldiers (World + Players + Vehicles, excluding the shooter); tank shells get HE splash so armour can hurt infantry; one shared `Explosion` for rockets, bombs and tank shells (direct hit counts once)
+- [x] Ticket bleed grows with the flag lead (fractional accumulator instead of `ceil()`; `bleed_rate = 2.0`, so 1 ticket/s at full control on the test map), with a test (`tests/combat_test.gd`, 23 checks)
 - [ ] CI: GitHub Actions runs the headless import and all test suites on every pull request
 - [ ] Shared test helpers and one runner script instead of copy-pasted helpers in each suite
 - [ ] Repo hygiene: commit `*.import` files; raise key GDScript warnings (start with untyped declarations); tidy `test_desert.gd`; remove unused tank exports; delete merged branches and the old worktree
@@ -179,10 +179,10 @@ From the 2026-11-27 review; fixes the [Known issues](#known-issues) marked *Hard
 italic note says which milestone fixes it.*
 
 ### Gameplay
-- [ ] **Rifle can't hit soldiers** — its ray mask is World + Vehicles (5); infantry are on Players (2). Infantry-vs-infantry combat doesn't work. *Hardening*
-- [ ] **Tank can't hurt infantry** — the cannon ray ignores Players and the shell has no splash. *Hardening*
-- [ ] **Rockets and bombs fly through soldiers** — the flight ray ignores Players; only the splash hurts them. *Hardening*
-- [ ] **Ticket bleed is flat** — `ceil(bleed_rate × difference / total)` is 1 ticket/s for *any* flag deficit, so a bigger lead doesn't bleed faster. *Hardening*
+- [x] **Rifle can't hit soldiers** — its ray mask was World + Vehicles (5); infantry are on Players (2). *Fixed in Hardening: mask 7.*
+- [x] **Tank can't hurt infantry** — the cannon ray ignored Players and the shell had no splash. *Fixed in Hardening: mask 7 and an HE `Explosion`.*
+- [x] **Rockets and bombs fly through soldiers** — the flight ray ignored Players; only the splash hurt them. *Fixed in Hardening: mask 7; the body hit takes full damage once.*
+- [x] **Ticket bleed is flat** — `ceil(bleed_rate × difference / total)` was 1 ticket/s for *any* flag deficit. *Fixed in Hardening: fractional accumulator.*
 - [ ] **Kits are health and speed only** — every kit carries the same rifle + RPG-7; the listed weapons and gadgets aren't implemented. *5.1 kit loadouts*
 
 ### Architecture (blocks bots and multiplayer)
@@ -194,7 +194,7 @@ italic note says which milestone fixes it.*
 - [ ] The helicopter's second seat position is defined but unused. *When multi-seat vehicles arrive*
 
 ### Repo & tooling
-- [ ] **No CI** — three headless suites (~80 s) only run by hand; test helpers are copy-pasted between suites. *Hardening*
+- [ ] **No CI** — four headless suites (~100 s) only run by hand; test helpers are copy-pasted between suites. *Hardening*
 - [ ] `.gitignore` excludes `*.import` files; Godot 4 expects them committed, which matters once real textures and models arrive. *Hardening*
 - [ ] GDScript warnings aren't raised to errors (the docs used to claim they were). *Hardening*
 - [ ] `test_desert.gd` has stale comments and hard-codes "v0.1.0"; the project version is still 0.1.0. *Hardening; v0.2.0 at Sprint 4 wrap-up*

@@ -126,10 +126,24 @@ players and empty vehicles don't count.
 
 **Tickets** (`ConquestManager`): both teams start with `300`.
 
-- **Bleed:** every 1 s, the team holding fewer flags loses
-  `ceil(bleed_rate × flag_difference / total_flags)` tickets. Base flags count toward both
-  totals. ⚠ With the default `bleed_rate = 1` this always rounds up to **1 ticket per
-  second for any deficit**: holding more flags doesn't bleed the enemy faster yet.
+- **Bleed:** the team holding fewer flags loses
+  `bleed_rate × flag_difference / total_flags` tickets per second (`bleed_rate = 2.0`), so
+  a bigger lead bleeds the enemy faster. Base flags count toward both totals. The amount
+  builds up as a fraction per team every physics tick; whole tickets come off as it passes
+  each integer, and `ticket_updated` fires only when a team's ticket count changes. A
+  leftover fraction carries over if the bleed stops and starts again.
+
+  Pacing on the test map (4 flags, 2 of them uncapturable bases, so the biggest possible
+  lead is 2), from bleed alone:
+
+  | Flag lead | Bleed | 300 tickets last |
+  |---|---|---|
+  | 1 | 0.5 ticket/s | ≈ 10 min |
+  | 2 (every capturable flag) | 1 ticket/s | ≈ 5 min |
+
+  Each flag of lead is worth `bleed_rate / total_flags` tickets per second, so maps with
+  more flags bleed more slowly per flag. Tune `bleed_rate` per map toward the 20–40 minute
+  match the [design goals](design_goals.md) ask for.
 - **Deaths:** `MatchManager` calls `on_player_killed(team)` for every death
   (`kill_ticket_cost = 1`).
 - **End:** the first team to reach `0` loses; `game_over(winning_team)` fires once and the
@@ -219,17 +233,30 @@ Signals: `damaged(amount, attacker)`, `healed(amount)`, `died(attacker)`,
 
 | Source | Damage | Delivery | Can hit |
 |---|---|---|---|
-| Rifle | 25 per shot, every 0.11 s | Hitscan 300 m, ray mask World + Vehicles | ⚠ Vehicles and world only — **can't hit soldiers** |
-| RPG-7 | 120 to vehicles / 80 to infantry × linear falloff over 8 m | `RocketProjectile`, 95 m/s, 2.5 m/s² drop | ⚠ Direct ray ignores soldiers; the splash hits Players + Vehicles |
+| Rifle | 25 per shot, every 0.11 s | Hitscan 300 m, ray mask World + Players + Vehicles | Everything; 4 hits kill a 100 hp soldier |
+| RPG-7 | Direct hit: 120 to a vehicle / 80 to a soldier. Splash: the same × falloff over 8 m | `RocketProjectile`, 95 m/s, 2.5 m/s² drop, flight ray World + Players + Vehicles | Everything |
 | Hydra 70 (helicopter) | as RPG-7 | Alternate wing pods every 0.22 s | as RPG-7 |
-| Tank cannon | 250 | Hitscan 1,800 m, ray mask World + Vehicles, every 3.5 s | ⚠ Vehicles only, no splash — **can't hurt infantry** |
+| Tank cannon (HE) | Direct hit: 250. Splash: 150 to soldiers / 40 to vehicles × falloff over 6 m | Hitscan 1,800 m, ray mask World + Players + Vehicles, every 3.5 s | Everything; kills a soldier on a direct hit or within ≈ 2 m |
 | Jet 20 mm | 18 per round, every 0.07 s | Hitscan 1.5 km, ray mask World + Players + Vehicles | Everything |
-| Jet bomb | 450 to vehicles / 200 to infantry, 16 m blast | `RocketProjectile` with `speed = 0` and full gravity | Splash: Players + Vehicles |
+| Jet bomb | Direct hit: 450 to a vehicle / 200 to a soldier. Splash: the same × falloff over 16 m | `RocketProjectile` with `speed = 0` and full gravity | Everything |
 | Jet crash | 12 per m/s lost beyond 22 m/s in one tick, + 40 | `JetController` | The jet |
 | Vehicle destroyed | Kills the occupant (credited to the vehicle's attacker) | `PlayerController._on_vehicle_destroyed` | Occupant |
 | `K` dev key | All remaining health, attacker = self | `PlayerController` | Self (counts as a death) |
 
-Explosions also push `RigidBody3D`s in the blast radius (`blast_impulse = 12000`).
+**Explosions** ([`explosion.gd`](../godot/scripts/weapons/explosion.gd)):
+`Explosion.detonate()` is shared by rockets, bombs and the tank cannon.
+
+- The body the projectile or shell hit takes its direct-hit damage once, with no falloff
+  and no splash on top.
+- Every other soldier or vehicle in the radius takes splash
+  `damage × (1 − distance / radius)`, measured to the body's origin (at least 0.5 m).
+  Soldiers are bodies on the Players layer; everything else counts as a vehicle. A vehicle
+  with several collision shapes is hit once.
+- `RigidBody3D`s in the radius are pushed away and slightly up with the same falloff:
+  rockets 12,000, tank shells 15,000, bombs 60,000 N·s.
+- All damage goes through `HealthComponent.take_damage()` with the shooter as attacker (the
+  tank's occupant for its shells), so friendly fire stays off and the shooter gets the kill.
+- Nothing blocks splash yet: there is no line-of-sight check through walls.
 
 ---
 
@@ -365,9 +392,19 @@ Scene: [`tank.tscn`](../godot/scenes/vehicles/tank.tscn)
 **Turret & barrel:** mouse X turns `TurretPivot` (`turret_mouse_sensitivity = 0.0018`);
 mouse Y elevates `BarrelPivot` within −5°…+15°. Both are plain `Node3D`s, not simulated.
 
-**Cannon:** hitscan from `Muzzle`, 1,800 m, 250 damage, every 3.5 s, with a visual
-`CannonShell` tracer at 580 m/s. ⚠ The ray ignores soldiers and there is no splash, so the
-tank can't hurt infantry yet.
+**Cannon:** a high-explosive shell, hitscan from `Muzzle` (1,800 m, every 3.5 s, ray mask
+World + Players + Vehicles). At the impact it detonates an
+[`Explosion`](#6-health--damage) credited to the occupant:
+
+| Export | Default | Notes |
+|---|---|---|
+| `cannon_damage` | 250 | The body it hits: kills any soldier, half a tank |
+| `splash_radius` | 6 m | |
+| `splash_infantry_damage` | 150 | At the impact, falling off to 0 at the radius: kills within ≈ 2 m of a soldier's centre |
+| `splash_vehicle_damage` | 40 | Same falloff; HE barely scratches armour |
+| `splash_impulse` | 15,000 N·s | Push for rigid bodies |
+
+A visual `CannonShell` tracer flies at 580 m/s and disappears at the impact point.
 
 **Seat & camera:** driver seat at (0, 1.35, −0.4); chase camera at (0, 3.5, 9).
 

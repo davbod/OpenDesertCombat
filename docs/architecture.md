@@ -53,11 +53,11 @@ Layers are named in `godot/project.godot`:
 | `InteractionRay` (6 m) | — | 5 | Finds vehicles; world geometry blocks it |
 | Vehicles | 4 | 5 | Land on the world, collide with each other |
 | `CapturePoint` (`Area3D`) | 0 | 6 (Players + Vehicles) | Tracks everyone inside; counts living soldiers and occupied vehicles |
-| Rifle ray | — | 5 | ⚠ Misses soldiers |
-| Rocket / bomb flight ray | — | 5 | ⚠ Flies through soldiers; only the splash hurts them |
-| Rocket / bomb splash (sphere query) | — | 6 | Damages players and vehicles, pushes rigid bodies |
-| Tank cannon ray | — | 5 | ⚠ Misses soldiers (and there is no splash) |
-| Jet cannon ray | — | 7 (World + Players + Vehicles) | Hits everything |
+| Rifle ray | — | 7 (World + Players + Vehicles) | Hits everything; excludes the shooter |
+| Rocket / bomb flight ray | — | 7 | Excludes the shooter; detonates an `Explosion` on the first hit |
+| Tank cannon ray | — | 7 | Excludes the tank; detonates an HE `Explosion` at the impact |
+| Jet cannon ray | — | 7 | Hits everything |
+| `Explosion` splash (sphere query) | — | 6 (Players + Vehicles) | Rockets, bombs, tank shells: damages soldiers and vehicles, pushes rigid bodies |
 | Altitude rays (helicopter 500 m, jet 3 km) | — | 1 | Ground only |
 | `SpawnPoint` ground snap | — | 1 | Places spawns on the ground |
 
@@ -149,7 +149,8 @@ HealthComponent.died(attacker)
 ```
 
 What is *not* authoritative yet: damage is applied by whoever fires (hitscan in the
-shooter's script), and vehicles and the player read `Input` directly. Both need to change
+shooter's script, explosions in `Explosion.detonate()` called by the projectile or tank),
+and vehicles and the player read `Input` directly. Both need to change
 before bots and multiplayer — see the roadmap.
 
 ---
@@ -231,11 +232,12 @@ lines and exits with code 0 or 1.
 | `teams_test.gd` | Friendly fire, vehicle teams, death → ticket, team respawn, capture, hold, bleed, contest, game over | ≈ 17 s |
 | `match_test.gd` | Participants, kill credit, spawn rules, flag spawns, deploy menu, lost flags, main bases, vehicle wreck/abandon/respawn | ≈ 17 s |
 | `jet_flight_test.gd` | Takeoff, climb, cruise, hard turn, stall, crash | ≈ 45 s |
+| `combat_test.gd` | Rifle and RPG against soldiers, friendly fire, tank HE direct hit and splash with kill credit, bomb direct hit, ticket bleed rate | ≈ 24 s |
 
 ```bash
 cd godot
 "$GODOT" --headless --path . --import --quit          # once, after pulling
-for t in teams_test match_test jet_flight_test; do
+for t in teams_test match_test jet_flight_test combat_test; do
   "$GODOT" --headless --path . --script res://tests/$t.gd || exit 1
 done
 ```
