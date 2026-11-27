@@ -61,7 +61,7 @@ func _test_registry_and_start_state() -> void:
 	_check(match_mgr.participant_for(player) == p, "participant_for(player) finds it")
 	_check(match_mgr.get_spawn_points(Teams.USMC) == [spawn_usmc], "USMC can only spawn at its base at the start")
 	_check(match_mgr.get_spawn_points(Teams.OPFOR) == [spawn_opfor], "OPFOR can only spawn at its base at the start")
-	for vname in ["Tank", "Humvee", "Helicopter", "Jet", "OPFORTank", "OPFORHumvee"]:
+	for vname: String in ["Tank", "Humvee", "Helicopter", "Jet", "OPFORTank", "OPFORHumvee"]:
 		_check(_find(vname) != null, "%s spawned at its main base" % vname)
 	_check(_find("AlphaHumvee") == null, "no vehicle at neutral Alpha")
 

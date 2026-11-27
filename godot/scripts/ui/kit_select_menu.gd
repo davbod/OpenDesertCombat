@@ -224,8 +224,8 @@ func _refresh_spawn_buttons() -> void:
 
 ## set_pressed_no_signal() bypasses the ButtonGroup, so release the others by hand.
 func _show_pressed(buttons: Array, selected: Variant) -> void:
-	for b in buttons:
-		(b as Button).set_pressed_no_signal(b == selected)
+	for b: Button in buttons:
+		b.set_pressed_no_signal(b == selected)
 
 
 ## Selected toggle buttons get a tinted fill and a bright border, so the choice is obvious.

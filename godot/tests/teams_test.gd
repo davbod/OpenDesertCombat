@@ -84,7 +84,7 @@ func _test_friendly_fire() -> void:
 
 func _test_vehicle_teams() -> void:
 	print("\n-- Vehicle teams")
-	for vname in ["Tank", "Humvee", "Helicopter", "Jet"]:
+	for vname: String in ["Tank", "Humvee", "Helicopter", "Jet"]:
 		var v := _find(vname) as Node3D
 		if not v:
 			_fail("%s not found" % vname)

@@ -151,7 +151,7 @@ func _show_message(text: String, color: Color, duration: float) -> void:
 	center_message.add_theme_color_override("font_color", color)
 	center_message.visible = true
 	if duration > 0.0:
-		get_tree().create_timer(duration).timeout.connect(func():
+		get_tree().create_timer(duration).timeout.connect(func() -> void:
 			if is_instance_valid(center_message) and center_message.text == text \
 					and conquest_manager and conquest_manager.game_active:
 				center_message.visible = false
